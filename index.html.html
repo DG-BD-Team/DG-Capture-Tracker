@@ -1,0 +1,5374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D&G Capture Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/tabler-icons.min.css">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f6f9;color:#1a1a1a}
+input,select,textarea{outline:none;font-family:inherit;transition:border-color 0.15s}
+input:focus,select:focus,textarea:focus{border-color:#04122a!important;box-shadow:0 0 0 2px #04122a18}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f0f0f0}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {
+  useState,
+  useEffect,
+  useCallback,
+  useRef
+} = React;
+const NAVY = "#04122A",
+  ORANGE = "#DE7F26";
+const STATUS_OPTS = ["", "Not Started", "In Progress", "Complete", "N/A"];
+const STATUS_COLOR = {
+  "Not Started": "#888",
+  "In Progress": "#DE7F26",
+  "Complete": "#2e7d32",
+  "N/A": "#aaa",
+  "": " "
+};
+const STORAGE_KEY = "dg_capture_pursuits_v1";
+
+// ── localStorage helpers ──────────────────────────────────────────
+function lsGet(key) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : null;
+  } catch {
+    return null;
+  }
+}
+function lsSet(key, val) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── Blank pursuit factory ─────────────────────────────────────────
+function blankPursuit(id) {
+  return {
+    id,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    meta: {
+      opportunityName: "",
+      customer: "",
+      contractVehicle: "",
+      setAside: "",
+      naics: "",
+      popStart: "",
+      popEnd: "",
+      estimatedValue: "",
+      rfpRelease: "",
+      role: "Prime",
+      incumbentName: "",
+      teamingPartner: "",
+      ndaExecuted: false,
+      taExecuted: false,
+      competition: "",
+      deliveryLead: "",
+      captureManager: "",
+      functionalSME: ""
+    },
+    checklist: {
+      misc: [{
+        id: "cm1",
+        label: "Capture Manager assigned",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "cm2",
+        label: "Executive buy-in confirmed",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "cm3",
+        label: "Executive Lead assigned",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "cm4",
+        label: "SME assigned",
+        status: "",
+        assignee: "",
+        notes: ""
+      }],
+      intel: [{
+        id: "i1",
+        label: "Find draft/previous SOW/PWS or old RFPs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i2",
+        label: "Respond to RFI, if applicable",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i3",
+        label: "Identify initial barriers/gaps to priming",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i4",
+        label: "Email KO asking for timeline update",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i5",
+        label: "Attend industry day, if applicable",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i6",
+        label: "Populate Capability Matrix",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i7",
+        label: "Assign up to 3 best-fit past performances",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i8",
+        label: "Identify gaps requiring teaming partner",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i9",
+        label: "Identify current and previous incumbents",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i10",
+        label: "Confirm incumbent/subs qualified to prime",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i11",
+        label: "Perform incumbent pricing analysis",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "i12",
+        label: "Confirm incumbent staff on LinkedIn",
+        status: "",
+        assignee: "",
+        notes: ""
+      }],
+      customerCall: [{
+        id: "c1",
+        label: "Identify top customer POCs via SMEs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "c2",
+        label: "Identify top customer POCs via LinkedIn/GovWin",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "c3",
+        label: "Confirm connections/relationships to competitors",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "c4",
+        label: "Schedule meetings with customer POCs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "c5",
+        label: "Identify influential Evaluation Board POCs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "c6",
+        label: "Validate evaluator interests and hot buttons",
+        status: "",
+        assignee: "",
+        notes: ""
+      }],
+      competitive: [{
+        id: "ci1",
+        label: "Identify top prime competitors via SMEs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "ci2",
+        label: "Identify top competitors via GovWin (top vendors last 3-5 yrs)",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "ci3",
+        label: "Confirm competitor relationships to customer POCs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "ci4",
+        label: "Confirm competitors' top relevant past performances",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "ci5",
+        label: "Perform Black Hat / SWOT against top 5 competitors",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "ci6",
+        label: "Research companies recruiting for same positions",
+        status: "",
+        assignee: "",
+        notes: ""
+      }],
+      strategy: [{
+        id: "s1",
+        label: "Identify most advantageous teaming partner",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "s2",
+        label: "Finalize NDA with teaming partner",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "s3",
+        label: "Agree on workshare and finalize TA",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "s4",
+        label: "Identify external consultant/SME if applicable",
+        status: "",
+        assignee: "",
+        notes: ""
+      }],
+      staffing: [{
+        id: "st1",
+        label: "Validate KP requirements from SOW/PWS",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "st2",
+        label: "Validate desired KP criteria from customer intel",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "st3",
+        label: "Draft Position Descriptions for KPs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "st4",
+        label: "Discuss KP/non-KP staffing strategy internally",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "st5",
+        label: "Assign recruiter and communicate staffing needs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "st6",
+        label: "PM/KPs identified, vetted, and LOI signed",
+        status: "",
+        assignee: "",
+        notes: ""
+      }],
+      pricing: [{
+        id: "p1",
+        label: "Communicate incumbent PTW analysis to Price Lead",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "p2",
+        label: "Validate customer funding/staffing/capability needs",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "p3",
+        label: "Document competitor pricing strategies",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "p4",
+        label: "Attend pricing discussions with partners",
+        status: "",
+        assignee: "",
+        notes: ""
+      }],
+      proposal: [{
+        id: "pr1",
+        label: "Proposal Manager identified and assigned",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr2",
+        label: "SMEs identified, assigned, briefed on offering",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr3",
+        label: "Writers identified, assigned, briefed",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr4",
+        label: "Validate Past Performances from Gap Analysis",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr5",
+        label: "Gather proof points, metrics, CPARS quotes",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr6",
+        label: "Create 3-5 win themes",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr7",
+        label: "Identify at least one differentiator",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr8",
+        label: "Blue Team template complete",
+        status: "",
+        assignee: "",
+        notes: ""
+      }, {
+        id: "pr9",
+        label: "KP resumes shaped to SOW/PWS requirements",
+        status: "",
+        assignee: "",
+        notes: ""
+      }]
+    },
+    capMatrix: {
+      contractTitle: "",
+      contractNumber: "",
+      pop: "",
+      value: "",
+      fte: "",
+      taskAreas: Array(3).fill(null).map((_, i) => ({
+        id: i,
+        label: `Task Area ${i + 1}`,
+        description: "",
+        experience: ""
+      }))
+    },
+    incumbent: {
+      current: {
+        company: "",
+        uei: "",
+        setAside: "",
+        naics: "",
+        co: "",
+        contractType: "",
+        contractNumber: "",
+        vehicle: "",
+        description: "",
+        ceiling: "",
+        obligated: "",
+        popStart: "",
+        popEnd: "",
+        subs: "",
+        subsQualified: "",
+        ftes: "",
+        bidders: "",
+        qualifiedToBid: "",
+        govwinLink: "",
+        usaspendingLink: "",
+        notes: ""
+      },
+      previous: {
+        company: "",
+        uei: "",
+        setAside: "",
+        naics: "",
+        co: "",
+        contractType: "",
+        contractNumber: "",
+        vehicle: "",
+        description: "",
+        ceiling: "",
+        obligated: "",
+        popStart: "",
+        popEnd: "",
+        subs: "",
+        subsQualified: "",
+        ftes: "",
+        bidders: "",
+        qualifiedToBid: "",
+        govwinLink: "",
+        usaspendingLink: "",
+        notes: ""
+      }
+    },
+    callPlan: {
+      govStaff: [],
+      evalBoard: [],
+      incumbentStaff: [],
+      competitorRecruiting: []
+    },
+    competition: [],
+    teaming: [],
+    pricing: {
+      incumbent: "",
+      contractNumber: "",
+      totalValue: "",
+      totalObligated: "",
+      popStart: "",
+      popEnd: "",
+      estimatedFtes: "15",
+      targetPct: "-5",
+      fpdsData: [],
+      notes: ""
+    },
+    solution: {
+      hotButtons: Array(3).fill(null).map(() => ({ priority: "", button: "", source: "", confidence: "" })),
+      customerVision: "",
+      discriminatingReqs: Array(3).fill(null).map(() => ({ task: "", requirement: "", importance: "" })),
+      winThemes: Array(3).fill(null).map(() => ({ theme: "", taskAreas: "", hotButton: "" })),
+      discriminators: Array(3).fill(null).map(() => ({ claim: "", customerNeed: "", beatsCompetitor: "", proof: "" })),
+      fbp: Array(3).fill(null).map(() => ({ feature: "", benefit: "", proof: "", evalSection: "" })),
+      ghosts: Array(3).fill(null).map(() => ({ competitorWeakness: "", ourApproach: "", language: "" })),
+      gaps: Array(3).fill(null).map(() => ({ description: "", mitigation: "" }))
+    },
+    capturePhases: {
+      phase2: {
+        activities: [
+          { id: "p2a1", label: "Understand customer mission and priorities", status: "", assignee: "", notes: "" },
+          { id: "p2a2", label: "Identify pain points with current contract", status: "", assignee: "", notes: "" },
+          { id: "p2a3", label: "Identify upcoming initiatives or organizational changes", status: "", assignee: "", notes: "" },
+          { id: "p2a4", label: "Assess budget environment", status: "", assignee: "", notes: "" },
+          { id: "p2a5", label: "Identify key decision makers and influencers", status: "", assignee: "", notes: "" },
+          { id: "p2a6", label: "Conduct customer meetings (leadership check-ins — formal & informal)", status: "", assignee: "", notes: "" },
+          { id: "p2a7", label: "Identify and influence likely acquisition approach", status: "", assignee: "", notes: "" }
+        ],
+        stakeholderMap: [{ id: "sm1", name: "", title: "", org: "", influence: "", relationship: "", notes: "" }],
+        customerProfileNotes: "",
+        questionsWorking: "",
+        questionsNotWorking: "",
+        questionsChange: "",
+        questionsLosingSleep: ""
+      },
+      phase3: {
+        activities: [
+          { id: "p3a1", label: "Identify likely bidders", status: "", assignee: "", notes: "" },
+          { id: "p3a2", label: "Assess incumbent strengths and weaknesses (SWOT on D&G team)", status: "", assignee: "", notes: "" },
+          { id: "p3a3", label: "Assess relationships and past performance (min. 2 past performances needed)", status: "", assignee: "", notes: "" },
+          { id: "p3a4", label: "Estimate competitor pricing strategy", status: "", assignee: "", notes: "" },
+          { id: "p3a5", label: "Conduct Black Hat session", status: "", assignee: "", notes: "" }
+        ],
+        competitorMatrixNotes: "",
+        blackHatNotes: "",
+        swotStrengths: "",
+        swotWeaknesses: "",
+        swotOpportunities: "",
+        swotThreats: ""
+      },
+      phase4: {
+        activities: [
+          { id: "p4a1", label: "Identify key personnel requirements", status: "", assignee: "", notes: "" },
+          { id: "p4a2", label: "Assess incumbent staff retention opportunities", status: "", assignee: "", notes: "" },
+          { id: "p4a3", label: "Recruit critical personnel", status: "", assignee: "", notes: "" },
+          { id: "p4a4", label: "Evaluate teammates/JV partners", status: "", assignee: "", notes: "" },
+          { id: "p4a5", label: "Validate labor categories and salary assumptions", status: "", assignee: "", notes: "" },
+          { id: "p4a6", label: "Execute NDAs/teaming agreements", status: "", assignee: "", notes: "" }
+        ],
+        staffingPlanNotes: "",
+        teamingStrategyNotes: "",
+        candidatePipelineNotes: ""
+      }
+    },
+    actionItems: {
+      open: [],
+      completed: []
+    },
+    pwin: {
+      scores: {
+        cust_rel: 0,
+        req_shape: 0,
+        incumbent: 0,
+        teaming: 0,
+        tech_fit: 0,
+        past_perf: 0,
+        price: 0
+      },
+      notes: "",
+      lastUpdated: ""
+    },
+    gateReview: {
+      rfiDate: "",
+      rfpDate: "",
+      awardDate: "",
+      competitionType: "",
+      contractType: "",
+      workLocation: "",
+      customerRelationship: "",
+      incumbentIntel: "",
+      scopeDescription: "",
+      taskAreas: "",
+      keyPersonnel: "",
+      nonKeyPersonnel: "",
+      teamingPartner: "",
+      teamingPct: "",
+      competition: "",
+      strengths: "",
+      weaknesses: "",
+      opportunities: "",
+      threats: "",
+      howToWin: "",
+      differentiator: "",
+      proposalVolumes: "",
+      ddPastPerfs: ["", "", ""],
+      executiveLead: "",
+      captureManager: "",
+      pricingLead: "",
+      proposalManager: "",
+      approvalAuthority: "",
+      smeReviewer: "",
+      nextSteps: "",
+      liveUpdates: "",
+      govwin: "",
+      govtribe: "",
+      samgov: "",
+      apfs: "",
+      pws: ""
+    }
+  };
+}
+
+// ── Shared UI primitives ──────────────────────────────────────────
+function Lbl({
+  children
+}) {
+  return /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#555",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      display: "block",
+      marginBottom: 4
+    }
+  }, children);
+}
+function FInput({
+  label,
+  value,
+  onChange,
+  type = "text",
+  options,
+  placeholder = "",
+  wide = false
+}) {
+  const base = {
+    width: "100%",
+    padding: "7px 10px",
+    fontSize: 13,
+    borderRadius: 6,
+    border: "1px solid #d0d5dd",
+    background: "#fff",
+    color: "#1a1a1a",
+    fontFamily: "inherit"
+  };
+  const wrap = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 3,
+    gridColumn: wide ? "1/-1" : undefined
+  };
+  if (options) return /*#__PURE__*/React.createElement("div", {
+    style: wrap
+  }, /*#__PURE__*/React.createElement(Lbl, null, label), /*#__PURE__*/React.createElement("select", {
+    value: value,
+    onChange: e => onChange(e.target.value),
+    style: base
+  }, options.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o,
+    value: o
+  }, o || "—"))));
+  if (type === "textarea") return /*#__PURE__*/React.createElement("div", {
+    style: wrap
+  }, /*#__PURE__*/React.createElement(Lbl, null, label), /*#__PURE__*/React.createElement("textarea", {
+    value: value,
+    onChange: e => onChange(e.target.value),
+    placeholder: placeholder,
+    rows: 3,
+    style: {
+      ...base,
+      resize: "vertical",
+      lineHeight: 1.5
+    }
+  }));
+  return /*#__PURE__*/React.createElement("div", {
+    style: wrap
+  }, /*#__PURE__*/React.createElement(Lbl, null, label), /*#__PURE__*/React.createElement("input", {
+    type: type,
+    value: value,
+    onChange: e => onChange(e.target.value),
+    placeholder: placeholder,
+    style: base
+  }));
+}
+function Grid({
+  cols = 3,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: `repeat(${cols},minmax(0,1fr))`,
+      gap: 12
+    }
+  }, children);
+}
+function Sec({
+  title,
+  children
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 16,
+      background: ORANGE,
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: 0,
+      fontSize: 12,
+      fontWeight: 700,
+      color: NAVY,
+      textTransform: "uppercase",
+      letterSpacing: "0.07em"
+    }
+  }, title)), children);
+}
+function Card({
+  children,
+  style = {}
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "16px 18px",
+      ...style
+    }
+  }, children);
+}
+function PBar({
+  value,
+  total
+}) {
+  const p = total ? Math.round(value / total * 100) : 0;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 6,
+      background: "#eee",
+      borderRadius: 3,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${p}%`,
+      height: "100%",
+      background: p === 100 ? "#2e7d32" : ORANGE,
+      borderRadius: 3,
+      transition: "width 0.3s"
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#888",
+      minWidth: 36
+    }
+  }, value, "/", total));
+}
+function pursuitProgress(pursuit) {
+  const all = Object.values(pursuit.checklist).flat();
+  const done = all.filter(i => i.status === "Complete").length;
+  return {
+    done,
+    total: all.length,
+    pct: Math.round(done / all.length * 100)
+  };
+}
+const SA_COLORS = {
+  "8(a)": "#E6F1FB",
+  "SDVOSB": "#EAF3DE",
+  "WOSB": "#FBEAF0",
+  "EDWOSB": "#FBEAF0",
+  "SB": "#F1EFE8",
+  "HUBZone": "#FAEEDA",
+  "Unrestricted": "#F1EFE8",
+  "": " #F1EFE8"
+};
+const SA_TEXT = {
+  "8(a)": "#0C447C",
+  "SDVOSB": "#27500A",
+  "WOSB": "#72243E",
+  "EDWOSB": "#72243E",
+  "SB": "#444441",
+  "HUBZone": "#633806",
+  "Unrestricted": "#444441",
+  "": " #444441"
+};
+
+// ── PIPELINE DASHBOARD ────────────────────────────────────────────
+function Dashboard({
+  pursuits,
+  onCreate,
+  onOpen,
+  onDelete,
+  onArchive,
+  onRestore
+}) {
+  const [showArchived, setShowArchived] = useState(false);
+  const active = pursuits.filter(p => !p.archived);
+  const archived = pursuits.filter(p => p.archived);
+  const totalValue = active.reduce((sum, p) => {
+    const v = parseFloat((p.meta.estimatedValue || "").replace(/[$,M]/g, ""));
+    return sum + (isNaN(v) ? 0 : v * ((p.meta.estimatedValue || "").includes("M") ? 1000000 : 1));
+  }, 0);
+  const avgPct = active.length ? Math.round(active.reduce((s, p) => s + pursuitProgress(p).pct, 0) / active.length) : 0;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 1100,
+      margin: "0 auto",
+      padding: "28px 24px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 28
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: ORANGE,
+      textTransform: "uppercase",
+      letterSpacing: "0.1em",
+      marginBottom: 4
+    }
+  }, "D&G Solutions"), /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontSize: 26,
+      fontWeight: 800,
+      color: NAVY,
+      margin: 0
+    }
+  }, "Capture Pipeline")), /*#__PURE__*/React.createElement("button", {
+    onClick: onCreate,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "10px 20px",
+      background: NAVY,
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-plus",
+    style: {
+      fontSize: 16
+    },
+    "aria-hidden": "true"
+  }), "New Pursuit")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(4,1fr)",
+      gap: 14,
+      marginBottom: 28
+    }
+  }, [["Active Pursuits", active.length, "ti-target"], ["Avg. Progress", `${avgPct}%`, "ti-chart-line"], ["Open Actions", active.reduce((s, p) => s + p.actionItems.open.length, 0), "ti-checkbox"], ["Total Pipeline", active.length === 0 ? "—" : totalValue > 0 ? "$" + totalValue.toLocaleString() : `${active.length} pursuits`, "ti-currency-dollar"]].map(([label, val, icon]) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "14px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 30,
+      height: 30,
+      background: "#f0f4f8",
+      borderRadius: 7,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: `ti ${icon}`,
+    style: {
+      fontSize: 15,
+      color: NAVY
+    },
+    "aria-hidden": "true"
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#888",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
+    }
+  }, label)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 24,
+      fontWeight: 800,
+      color: NAVY
+    }
+  }, val)))), active.length === 0 && archived.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "60px 20px",
+      background: "#fff",
+      borderRadius: 12,
+      border: "2px dashed #e0e0e0"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-target",
+    style: {
+      fontSize: 48,
+      color: "#ccc",
+      display: "block",
+      marginBottom: 16
+    },
+    "aria-hidden": "true"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 700,
+      color: NAVY,
+      marginBottom: 8
+    }
+  }, "No pursuits yet"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: "#888",
+      marginBottom: 20
+    }
+  }, "Create your first pursuit to get started"), /*#__PURE__*/React.createElement("button", {
+    onClick: onCreate,
+    style: {
+      padding: "10px 24px",
+      background: NAVY,
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "Create First Pursuit")) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 12,
+      marginBottom: active.length === 0 ? 0 : 20
+    }
+  }, active.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "32px",
+      background: "#fff",
+      borderRadius: 10,
+      border: "1px dashed #e0e0e0",
+      color: "#888",
+      fontSize: 13
+    }
+  }, "No active pursuits \u2014 create one or restore from archive."), active.map(p => /*#__PURE__*/React.createElement(PursuitCard, {
+    key: p.id,
+    p: p,
+    onOpen: onOpen,
+    onArchive: onArchive,
+    onDelete: onDelete
+  }))), archived.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowArchived(v => !v),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 14px",
+      background: "transparent",
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: 600,
+      color: "#888",
+      cursor: "pointer",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: `ti ${showArchived ? "ti-chevron-down" : "ti-chevron-right"}`,
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "No-Bid / Archived (", archived.length, ")"), showArchived && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 10
+    }
+  }, archived.map(p => /*#__PURE__*/React.createElement(PursuitCard, {
+    key: p.id,
+    p: p,
+    onOpen: onOpen,
+    onRestore: onRestore,
+    onDelete: onDelete,
+    isArchived: true
+  }))))));
+}
+function PursuitCard({
+  p,
+  onOpen,
+  onArchive,
+  onRestore,
+  onDelete,
+  isArchived = false
+}) {
+  var _p$pwin;
+  const {
+    done,
+    total,
+    pct
+  } = pursuitProgress(p);
+  const sa = p.meta.setAside || "";
+  const updated = new Date(p.updatedAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+  const pwinScores = ((_p$pwin = p.pwin) === null || _p$pwin === void 0 ? void 0 : _p$pwin.scores) || {};
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: isArchived ? "#fafafa" : "#fff",
+      border: `1px solid ${isArchived ? "#e0e0e0" : "#e8eaed"}`,
+      borderRadius: 10,
+      padding: "16px 20px",
+      display: "grid",
+      gridTemplateColumns: "1fr auto",
+      gap: 12,
+      alignItems: "center",
+      cursor: "pointer",
+      transition: "border-color 0.15s",
+      opacity: isArchived ? 0.8 : 1
+    },
+    onMouseEnter: e => e.currentTarget.style.borderColor = NAVY,
+    onMouseLeave: e => e.currentTarget.style.borderColor = isArchived ? "#e0e0e0" : "#e8eaed",
+    onClick: () => onOpen(p.id)
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 8,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15,
+      fontWeight: 800,
+      color: isArchived ? "#888" : NAVY
+    }
+  }, p.meta.opportunityName || "Untitled Pursuit"), isArchived && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "2px 8px",
+      borderRadius: 10,
+      background: "#f1f1f1",
+      color: "#888",
+      border: "1px solid #e0e0e0"
+    }
+  }, "No Bid"), sa && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "2px 8px",
+      borderRadius: 10,
+      background: SA_COLORS[sa] || "#f1f1f1",
+      color: SA_TEXT[sa] || "#444"
+    }
+  }, sa), p.meta.role && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      padding: "2px 8px",
+      borderRadius: 10,
+      background: "#f1f1f1",
+      color: "#555"
+    }
+  }, p.meta.role), /*#__PURE__*/React.createElement(PwinBadge, {
+    scores: pwinScores,
+    compact: true
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 20,
+      flexWrap: "wrap",
+      marginBottom: 10
+    }
+  }, p.meta.customer && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#555"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-building",
+    style: {
+      fontSize: 13,
+      marginRight: 4,
+      verticalAlign: -2
+    },
+    "aria-hidden": "true"
+  }), p.meta.customer), p.meta.estimatedValue && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#555"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-currency-dollar",
+    style: {
+      fontSize: 13,
+      marginRight: 3,
+      verticalAlign: -2
+    },
+    "aria-hidden": "true"
+  }), (() => { const v = p.meta.estimatedValue || ""; const num = parseFloat(v.replace(/[$,MmBb]/g,"")); if (!v) return ""; if (/m/i.test(v)) return "$" + (num*1000000).toLocaleString(); if (/b/i.test(v)) return "$" + (num*1000000000).toLocaleString(); return isNaN(num) ? v : "$" + Math.round(num).toLocaleString(); })()), p.meta.captureManager && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#555"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-user",
+    style: {
+      fontSize: 13,
+      marginRight: 4,
+      verticalAlign: -2
+    },
+    "aria-hidden": "true"
+  }), p.meta.captureManager), p.archived && p.archivedAt && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#aaa"
+    }
+  }, "No-bid ", new Date(p.archivedAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  })), !p.archived && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#aaa"
+    }
+  }, "Updated ", updated)), !isArchived && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      maxWidth: 220,
+      height: 5,
+      background: "#eee",
+      borderRadius: 3,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${pct}%`,
+      height: "100%",
+      background: pct === 100 ? "#2e7d32" : ORANGE,
+      borderRadius: 3
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#888"
+    }
+  }, done, "/", total, " checklist items"), p.actionItems.open.length > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "2px 8px",
+      borderRadius: 10,
+      background: "#fff8e1",
+      color: "#633806"
+    }
+  }, p.actionItems.open.length, " open actions"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    },
+    onClick: e => e.stopPropagation()
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => onOpen(p.id),
+    style: {
+      padding: "8px 16px",
+      background: NAVY,
+      color: "#fff",
+      border: "none",
+      borderRadius: 7,
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "Open"), !isArchived && onArchive && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (window.confirm(`Move "${p.meta.opportunityName || "this pursuit"}" to No-Bid archive?`)) onArchive(p.id);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "8px 12px",
+      background: "transparent",
+      color: "#c62828",
+      border: "1px solid #f4b8b8",
+      borderRadius: 7,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer"
+    },
+    title: "No Bid \u2014 archive this pursuit"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-ban",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "No Bid"), isArchived && onRestore && /*#__PURE__*/React.createElement("button", {
+    onClick: () => onRestore(p.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "8px 12px",
+      background: "transparent",
+      color: "#2e7d32",
+      border: "1px solid #b2dfb2",
+      borderRadius: 7,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer"
+    },
+    title: "Restore to active pipeline"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-refresh",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "Restore"), isArchived && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (window.confirm(`Permanently delete "${p.meta.opportunityName || "this pursuit"}"? All data will be lost and this cannot be undone.`)) onDelete(p.id);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "8px 12px",
+      background: "transparent",
+      color: "#c62828",
+      border: "1px solid #f4b8b8",
+      borderRadius: 7,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer"
+    },
+    title: "Permanently delete"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-trash",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "Delete"), !isArchived && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (window.confirm(`Permanently delete "${p.meta.opportunityName || "this pursuit"}"? This cannot be undone.`)) onDelete(p.id);
+    },
+    style: {
+      padding: "8px 10px",
+      background: "transparent",
+      color: "#ccc",
+      border: "1px solid #eee",
+      borderRadius: 7,
+      fontSize: 12,
+      cursor: "pointer"
+    },
+    title: "Permanently delete"
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-trash",
+    style: {
+      fontSize: 14
+    },
+    "aria-hidden": "true"
+  }))));
+}
+
+// ── TAB CONTENT COMPONENTS ────────────────────────────────────────
+function MetaTab({
+  data,
+  setData
+}) {
+  var _data$pwin, _data$pwin2, _data$pwin3;
+  const u = (k, v) => setData(p => ({
+    ...p,
+    meta: {
+      ...p.meta,
+      [k]: v
+    }
+  }));
+  const m = data.meta;
+  const {
+    composite,
+    pwin,
+    verdict,
+    color
+  } = calcPwin(((_data$pwin = data.pwin) === null || _data$pwin === void 0 ? void 0 : _data$pwin.scores) || {});
+  const scored = Object.values(((_data$pwin2 = data.pwin) === null || _data$pwin2 === void 0 ? void 0 : _data$pwin2.scores) || {}).filter(v => v > 0).length;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
+    title: "Opportunity Details"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 3
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Opportunity Name",
+    value: m.opportunityName,
+    onChange: v => u("opportunityName", v),
+    wide: true
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Customer / Agency",
+    value: m.customer,
+    onChange: v => u("customer", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Contract Vehicle",
+    value: m.contractVehicle,
+    onChange: v => u("contractVehicle", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Set-Aside",
+    value: m.setAside,
+    onChange: v => u("setAside", v),
+    options: ["", "8(a)", "SDVOSB", "WOSB", "EDWOSB", "HUBZone", "SB", "Unrestricted"]
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "NAICS",
+    value: m.naics,
+    onChange: v => u("naics", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Estimated Value ($)",
+    value: m.estimatedValue,
+    onChange: v => u("estimatedValue", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Est. RFP Release",
+    value: m.rfpRelease || "",
+    onChange: v => u("rfpRelease", v),
+    type: "date"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8,
+      gridColumn: "1/-1"
+    }
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "PoP Start",
+    value: m.popStart,
+    onChange: v => u("popStart", v),
+    type: "date"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "PoP End",
+    value: m.popEnd,
+    onChange: v => u("popEnd", v),
+    type: "date"
+  })), /*#__PURE__*/React.createElement(FInput, {
+    label: "Incumbent Name",
+    value: m.incumbentName || "",
+    onChange: v => u("incumbentName", v)
+  }), /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 8 } },
+    /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
+      /*#__PURE__*/React.createElement(FInput, { label: "Teaming Partner", value: m.teamingPartner || "", onChange: v => u("teamingPartner", v) })
+    ),
+    [["ndaExecuted","NDA"],["taExecuted","TA"]].map(([field, label]) => {
+      const isChecked = !!m[field];
+      return /*#__PURE__*/React.createElement("div", { key: field, onClick: () => u(field, !isChecked), style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", paddingBottom: 4 } },
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: isChecked ? ORANGE : "#888", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" } }, label),
+        /*#__PURE__*/React.createElement("div", { style: { width: 28, height: 28, borderRadius: 6, border: isChecked ? "none" : "2px solid #d0d5dd", background: isChecked ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isChecked ? "0 0 0 3px " + ORANGE + "33" : "none" } },
+          isChecked && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 15, fontWeight: 700, lineHeight: 1 } }, "✓")
+        )
+      );
+    })
+  ), /*#__PURE__*/React.createElement(FInput, {
+    label: "Competition",
+    value: m.competition || "",
+    onChange: v => u("competition", v)
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Key Personnel"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 3
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Delivery Lead",
+    value: m.deliveryLead || "",
+    onChange: v => u("deliveryLead", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Capture Manager",
+    value: m.captureManager,
+    onChange: v => u("captureManager", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Functional SME",
+    value: m.functionalSME || "",
+    onChange: v => u("functionalSME", v)
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "P-Win Summary"
+  }, scored === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f8f9fa",
+      border: "1px dashed #ddd",
+      borderRadius: 8,
+      padding: "20px",
+      textAlign: "center",
+      color: "#888",
+      fontSize: 13
+    }
+  }, "No Pwin scores entered yet \u2014 go to the ", /*#__PURE__*/React.createElement("strong", null, "Pwin Scorecard"), " tab to score this pursuit.") : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#888",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      marginBottom: 6
+    }
+  }, "Composite Score"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 28,
+      fontWeight: 800,
+      color: NAVY
+    }
+  }, composite, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 400,
+      color: "#aaa"
+    }
+  }, "/100")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#aaa",
+      marginTop: 4
+    }
+  }, scored, "/8 factors scored")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#888",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      marginBottom: 6
+    }
+  }, "Pwin Estimate"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 28,
+      fontWeight: 800,
+      color: color
+    }
+  }, pwin, "%"), ((_data$pwin3 = data.pwin) === null || _data$pwin3 === void 0 ? void 0 : _data$pwin3.lastUpdated) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#aaa",
+      marginTop: 4
+    }
+  }, "Updated ", new Date(data.pwin.lastUpdated).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#888",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      marginBottom: 6
+    }
+  }, "Recommendation"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      fontSize: 15,
+      fontWeight: 800,
+      padding: "4px 14px",
+      borderRadius: 8,
+      background: color + "18",
+      color: color,
+      border: `1px solid ${color}44`
+    }
+  }, verdict)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      height: 5,
+      background: "#eee",
+      borderRadius: 3,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${pwin}%`,
+      height: "100%",
+      background: color,
+      borderRadius: 3,
+      transition: "width 0.4s"
+    }
+  }))))));
+}
+function GateTab({
+  data,
+  setData
+}) {
+  const u = (k, v) => setData(p => ({
+    ...p,
+    gateReview: {
+      ...p.gateReview,
+      [k]: v
+    }
+  }));
+  const g = data.gateReview,
+    m = data.meta;
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
+    title: "Contract Summary"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 3
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Customer",
+    value: m.customer,
+    onChange: () => {}
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Competition Type",
+    value: g.competitionType,
+    onChange: v => u("competitionType", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Contract Type",
+    value: g.contractType,
+    onChange: v => u("contractType", v),
+    options: ["", "FFP", "T&M", "CPFF", "CPAF", "IDIQ", "BPA"]
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "RFI Release Date",
+    value: g.rfiDate,
+    onChange: v => u("rfiDate", v),
+    type: "date"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "RFP Release Date",
+    value: g.rfpDate,
+    onChange: v => u("rfpDate", v),
+    type: "date"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Award Date",
+    value: g.awardDate,
+    onChange: v => u("awardDate", v),
+    type: "date"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Work Location(s)",
+    value: g.workLocation,
+    onChange: v => u("workLocation", v),
+    wide: true
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Customer Relationship Assessment",
+    value: g.customerRelationship,
+    onChange: v => u("customerRelationship", v),
+    wide: true
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Work Summary"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 1
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Scope / Work Description",
+    value: g.scopeDescription,
+    onChange: v => u("scopeDescription", v),
+    type: "textarea",
+    wide: true
+  }), /*#__PURE__*/React.createElement("div", { style: { gridColumn: "1 / -1" } },
+    /*#__PURE__*/React.createElement(Lbl, null, "Task Areas ", /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, color: ORANGE, fontWeight: 600, marginLeft: 6 } }, "synced from Cap Matrix")),
+    data.capMatrix && data.capMatrix.taskAreas && data.capMatrix.taskAreas.length > 0
+      ? /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginTop: 4 } },
+          data.capMatrix.taskAreas.map((ta, i) => /*#__PURE__*/React.createElement("div", { key: i, style: { display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 14px", background: i % 2 === 0 ? "#fff" : "#fafafa", borderTop: i > 0 ? "1px solid #f0f0f0" : "none" } },
+            /*#__PURE__*/React.createElement("div", { style: { minWidth: 24, height: 24, borderRadius: "50%", background: NAVY, color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, i + 1),
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: NAVY } }, ta.label),
+              ta.description && /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: "#555", marginTop: 2 } }, ta.description)
+            )
+          ))
+        )
+      : /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: "#aaa", fontStyle: "italic", padding: "10px 14px", border: "1px dashed #ddd", borderRadius: 8, marginTop: 4 } }, "No task areas defined yet — add them in the Cap Matrix tab")
+  ), /*#__PURE__*/React.createElement(FInput, {
+    label: "Key Personnel",
+    value: g.keyPersonnel,
+    onChange: v => u("keyPersonnel", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Non-Key Personnel",
+    value: g.nonKeyPersonnel,
+    onChange: v => u("nonKeyPersonnel", v)
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Incumbent Summary"
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Incumbent Intel Notes",
+    value: g.incumbentIntel,
+    onChange: v => u("incumbentIntel", v),
+    type: "textarea",
+    wide: true
+  })), /*#__PURE__*/React.createElement(Sec, {
+    title: "SWOT & Strategy"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 2
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Strengths",
+    value: g.strengths,
+    onChange: v => u("strengths", v),
+    type: "textarea"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Weaknesses",
+    value: g.weaknesses,
+    onChange: v => u("weaknesses", v),
+    type: "textarea"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Opportunities",
+    value: g.opportunities,
+    onChange: v => u("opportunities", v),
+    type: "textarea"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Threats",
+    value: g.threats,
+    onChange: v => u("threats", v),
+    type: "textarea"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "How will we win?",
+    value: g.howToWin,
+    onChange: v => u("howToWin", v),
+    type: "textarea"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "What differentiates us?",
+    value: g.differentiator,
+    onChange: v => u("differentiator", v),
+    type: "textarea"
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Teaming & Competition"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 3
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Teaming Partner",
+    value: g.teamingPartner,
+    onChange: v => u("teamingPartner", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Partner Workshare %",
+    value: g.teamingPct,
+    onChange: v => u("teamingPct", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Known Competition",
+    value: g.competition,
+    onChange: v => u("competition", v)
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Resources & Approval"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 3
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Executive Lead",
+    value: g.executiveLead || m.deliveryLead || "",
+    onChange: v => u("executiveLead", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Capture Manager",
+    value: g.captureManager || m.captureManager,
+    onChange: v => u("captureManager", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Pricing Lead",
+    value: g.pricingLead,
+    onChange: v => u("pricingLead", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Proposal Manager",
+    value: g.proposalManager,
+    onChange: v => u("proposalManager", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Approval Authority",
+    value: g.approvalAuthority || m.functionalSME || "",
+    onChange: v => u("approvalAuthority", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "SME / Reviewer",
+    value: g.smeReviewer,
+    onChange: v => u("smeReviewer", v)
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "D&G Past Performances"
+  }, g.ddPastPerfs.map((pp, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#888",
+      minWidth: 20,
+      fontWeight: 700
+    }
+  }, i + 1, "."), /*#__PURE__*/React.createElement("input", {
+    value: pp,
+    onChange: e => {
+      const a = [...g.ddPastPerfs];
+      a[i] = e.target.value;
+      u("ddPastPerfs", a);
+    },
+    placeholder: "Customer, Title, Value",
+    style: {
+      flex: 1,
+      padding: "7px 10px",
+      fontSize: 13,
+      borderRadius: 6,
+      border: "1px solid #d0d5dd",
+      background: "#fff",
+      color: "#1a1a1a"
+    }
+  })))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Tracking & Links"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 2
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "GovWin Link",
+    value: g.govwin,
+    onChange: v => u("govwin", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "GovTribe Link",
+    value: g.govtribe,
+    onChange: v => u("govtribe", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "SAM.gov Link",
+    value: g.samgov,
+    onChange: v => u("samgov", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "APFS Link",
+    value: g.apfs,
+    onChange: v => u("apfs", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "PWS Link",
+    value: g.pws,
+    onChange: v => u("pws", v)
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Next Steps",
+    value: g.nextSteps,
+    onChange: v => u("nextSteps", v),
+    type: "textarea",
+    wide: true
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Live Updates (post-RFP changes)",
+    value: g.liveUpdates,
+    onChange: v => u("liveUpdates", v),
+    type: "textarea",
+    wide: true
+  }))));
+}
+function ChecklistTab({
+  data,
+  setData
+}) {
+  const sections = [{
+    key: "misc",
+    title: "Miscellaneous"
+  }, {
+    key: "intel",
+    title: "Intel — Initial & Gap Analysis"
+  }, {
+    key: "customerCall",
+    title: "Customer Call Plan"
+  }, {
+    key: "competitive",
+    title: "Competitive Intelligence"
+  }, {
+    key: "strategy",
+    title: "Strategy & Teaming"
+  }, {
+    key: "staffing",
+    title: "Staffing & Recruiting"
+  }, {
+    key: "pricing",
+    title: "Pricing Strategy"
+  }, {
+    key: "proposal",
+    title: "Blue Team / Proposal"
+  }];
+  const upd = (sk, id, f, v) => setData(p => ({
+    ...p,
+    checklist: {
+      ...p.checklist,
+      [sk]: p.checklist[sk].map(i => i.id === id ? {
+        ...i,
+        [f]: v
+      } : i)
+    }
+  }));
+  const all = sections.flatMap(s => data.checklist[s.key]);
+  const done = all.filter(i => i.status === "Complete").length;
+  const is = {
+    width: "100%",
+    fontSize: 12,
+    padding: "3px 6px",
+    borderRadius: 4,
+    border: "1px solid #ddd",
+    background: "#fff",
+    color: "#1a1a1a"
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginBottom: 20,
+      background: "#f8f9fa"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: NAVY
+    }
+  }, "Overall Progress"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      color: "#888"
+    }
+  }, done, " of ", all.length, " complete")), /*#__PURE__*/React.createElement(PBar, {
+    value: done,
+    total: all.length
+  })), sections.map(({
+    key,
+    title
+  }) => {
+    const items = data.checklist[key];
+    const sd = items.filter(i => i.status === "Complete").length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: key,
+      style: {
+        marginBottom: 20
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 3,
+        height: 16,
+        background: ORANGE,
+        borderRadius: 2
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: NAVY,
+        textTransform: "uppercase",
+        letterSpacing: "0.05em"
+      }
+    }, title)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#888"
+      }
+    }, sd, "/", items.length)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        border: "1px solid #e8eaed",
+        borderRadius: 8,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("table", {
+      style: {
+        width: "100%",
+        borderCollapse: "collapse",
+        fontSize: 12
+      }
+    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+      style: {
+        background: "#f5f6fa"
+      }
+    }, /*#__PURE__*/React.createElement("th", {
+      style: {
+        padding: "8px 12px",
+        textAlign: "left",
+        fontWeight: 700,
+        color: "#666",
+        width: "45%"
+      }
+    }, "Task"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        padding: "8px 12px",
+        textAlign: "left",
+        fontWeight: 700,
+        color: "#666",
+        width: "14%"
+      }
+    }, "Status"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        padding: "8px 12px",
+        textAlign: "left",
+        fontWeight: 700,
+        color: "#666",
+        width: "15%"
+      }
+    }, "Assignee"), /*#__PURE__*/React.createElement("th", {
+      style: {
+        padding: "8px 12px",
+        textAlign: "left",
+        fontWeight: 700,
+        color: "#666"
+      }
+    }, "Notes"))), /*#__PURE__*/React.createElement("tbody", null, items.map((item, idx) => /*#__PURE__*/React.createElement("tr", {
+      key: item.id,
+      style: {
+        borderTop: idx > 0 ? "1px solid #eee" : undefined,
+        background: item.status === "Complete" ? "#f0f7f0" : "transparent"
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "8px 12px",
+        color: "#1a1a1a"
+      }
+    }, item.label), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "8px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("select", {
+      value: item.status,
+      onChange: e => upd(key, item.id, "status", e.target.value),
+      style: {
+        fontSize: 11,
+        padding: "3px 6px",
+        borderRadius: 4,
+        border: "1px solid #ddd",
+        background: "#fff",
+        color: STATUS_COLOR[item.status] || "#333",
+        fontWeight: 700
+      }
+    }, STATUS_OPTS.map(o => /*#__PURE__*/React.createElement("option", {
+      key: o,
+      value: o
+    }, o || "—")))), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "8px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: item.assignee,
+      onChange: e => upd(key, item.id, "assignee", e.target.value),
+      placeholder: "Name",
+      style: is
+    })), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "8px 12px"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: item.notes,
+      onChange: e => upd(key, item.id, "notes", e.target.value),
+      placeholder: "Notes",
+      style: is
+    }))))))));
+  }));
+}
+const CAP_MATRIX_PROMPT = `Analyze the PWS below and output a capability matrix JSON for D&G Solutions. D&G's core capabilities are: DoD supply chain management, logistics IT systems, DMSMS/obsolescence management, procurement analytics, transportation management (USTRANSCOM IGC/GBFMD), DLA J34 analytics, and OASIS+ program support.
+
+Rate each task area as High (D&G has direct, relevant past performance), Medium (adjacent capability or partial match), or Low (gap requiring teaming or new capability).
+
+Return ONLY valid JSON in this exact format — no preamble, no markdown fences:
+{
+  "contractTitle": "<contract name>",
+  "contractNumber": "",
+  "pop": "<base period if stated>",
+  "value": "<estimated value if stated>",
+  "fte": "<estimated FTEs if stated>",
+  "taskAreas": [
+    {
+      "label": "Task Area 1 — <short name>",
+      "description": "<1-2 sentence description of what this task area requires>",
+      "experience": "High|Medium|Low"
+    }
+  ]
+}
+
+PWS:
+[PASTE PWS TEXT HERE]`;
+function CapMatrixTab({
+  data,
+  setData
+}) {
+  const u = (k, v) => setData(p => ({
+    ...p,
+    capMatrix: {
+      ...p.capMatrix,
+      [k]: v
+    }
+  }));
+  const updTA = (i, f, v) => {
+    const a = [...data.capMatrix.taskAreas];
+    a[i] = {
+      ...a[i],
+      [f]: v
+    };
+    u("taskAreas", a);
+  };
+  const DEFAULT_TASK_AREAS = [
+    { id: 0, label: "Task Area 1", description: "", experience: "" },
+    { id: 1, label: "Task Area 2", description: "", experience: "" },
+    { id: 2, label: "Task Area 3", description: "", experience: "" }
+  ];
+  const rawTA = data.capMatrix && data.capMatrix.taskAreas;
+  const allBlank = rawTA && rawTA.every(ta => !ta.description && !ta.experience && ta.label === ("Task Area " + (ta.id + 1)));
+  const taskAreas = (!rawTA || rawTA.length === 0) ? DEFAULT_TASK_AREAS : allBlank ? rawTA.slice(0, 3) : rawTA;
+  const cm = Object.assign({}, data.capMatrix, { taskAreas });
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importErr, setImportErr] = useState("");
+  const [importOk, setImportOk] = useState(false);
+  const handleImport = () => {
+    setImportErr("");
+    setImportOk(false);
+    try {
+      const raw = importText.trim();
+      const jsonStr = raw.startsWith("```") ? raw.replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim() : raw;
+      const parsed = JSON.parse(jsonStr);
+      if (!parsed.taskAreas || !Array.isArray(parsed.taskAreas)) throw new Error("Missing taskAreas array");
+      const cleaned = parsed.taskAreas.map((ta, i) => ({
+        id: i,
+        label: String(ta.label || ta.name || `Task Area ${i + 1}`).trim(),
+        description: String(ta.description || ta.desc || "").trim(),
+        experience: ["High", "Medium", "Low"].includes(ta.experience || ta.rating || "") ? ta.experience || ta.rating : ""
+      }));
+      if (parsed.contractTitle) u("contractTitle", parsed.contractTitle);
+      if (parsed.contractNumber) u("contractNumber", parsed.contractNumber);
+      if (parsed.pop) u("pop", parsed.pop);
+      if (parsed.value) u("value", parsed.value);
+      if (parsed.fte) u("fte", String(parsed.fte));
+      u("taskAreas", cleaned);
+      setImportOk(true);
+      setImportText("");
+      setTimeout(() => {
+        setShowImport(false);
+        setImportOk(false);
+      }, 1800);
+    } catch (e) {
+      setImportErr("Could not parse JSON. Check the format and try again. Error: " + e.message);
+    }
+  };
+  const es = e => ({
+    fontSize: 12,
+    padding: "4px 8px",
+    borderRadius: 4,
+    border: "1px solid #ddd",
+    background: e === "High" ? "#e8f5e9" : e === "Medium" ? "#fff8e1" : e === "Low" ? "#ffebee" : "#fff",
+    color: e === "High" ? "#2e7d32" : e === "Medium" ? "#e65100" : e === "Low" ? "#c62828" : "#333",
+    fontWeight: 700
+  });
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
+    title: "Contract Reference Info"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 3
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Contract Title",
+    value: cm.contractTitle,
+    onChange: v => u("contractTitle", v),
+    wide: true
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Contract #",
+    value: cm.contractNumber,
+    onChange: v => u("contractNumber", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Period of Performance",
+    value: cm.pop,
+    onChange: v => u("pop", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Contract Value",
+    value: cm.value,
+    onChange: v => u("value", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "FTE Count",
+    value: cm.fte,
+    onChange: v => u("fte", v)
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Capability Matrix \u2014 Task Areas"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888"
+    }
+  }, "Rate D&G's experience against each PWS task area."), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setShowImport(v => !v);
+      setImportErr("");
+      setImportOk(false);
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 14px",
+      fontSize: 12,
+      fontWeight: 700,
+      borderRadius: 6,
+      border: `2px solid ${NAVY}`,
+      background: showImport ? NAVY : "transparent",
+      color: showImport ? "#fff" : NAVY,
+      cursor: "pointer",
+      transition: "all 0.15s"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-sparkles",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "Import from Claude")), showImport && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16,
+      background: "#f0f4f8",
+      border: `1px solid ${NAVY}33`,
+      borderRadius: 10,
+      padding: "16px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: ORANGE,
+      borderRadius: 5,
+      width: 24,
+      height: 24,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: 900,
+      fontSize: 10,
+      color: "#fff",
+      flexShrink: 0
+    }
+  }, "D&G"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: NAVY
+    }
+  }, "Paste Claude's JSON output below"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888"
+    }
+  }, "Use the Claude Project prompt template to generate this from your PWS, then paste the result here."))), /*#__PURE__*/React.createElement("textarea", {
+    value: importText,
+    onChange: e => {
+      setImportText(e.target.value);
+      setImportErr("");
+      setImportOk(false);
+    },
+    placeholder: '{\n  "contractTitle": "...",\n  "taskAreas": [\n    {"label": "Task Area 1 — ...", "description": "...", "experience": "High"},\n    ...\n  ]\n}',
+    rows: 10,
+    style: {
+      width: "100%",
+      padding: "10px 12px",
+      fontSize: 12,
+      borderRadius: 6,
+      border: `1px solid ${importErr ? "#e53935" : importOk ? "#2e7d32" : "#c5cae9"}`,
+      background: "#fff",
+      color: "#1a1a1a",
+      fontFamily: "monospace",
+      resize: "vertical",
+      lineHeight: 1.6,
+      boxSizing: "border-box"
+    }
+  }), importErr && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 12,
+      color: "#c62828",
+      background: "#ffebee",
+      padding: "6px 10px",
+      borderRadius: 5
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-alert-circle",
+    style: {
+      fontSize: 13,
+      marginRight: 5,
+      verticalAlign: -2
+    },
+    "aria-hidden": "true"
+  }), importErr), importOk && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 12,
+      color: "#2e7d32",
+      background: "#e8f5e9",
+      padding: "6px 10px",
+      borderRadius: 5
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-circle-check",
+    style: {
+      fontSize: 13,
+      marginRight: 5,
+      verticalAlign: -2
+    },
+    "aria-hidden": "true"
+  }), "Import successful \u2014 capability matrix populated."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: handleImport,
+    disabled: !importText.trim(),
+    style: {
+      padding: "8px 20px",
+      fontSize: 12,
+      fontWeight: 700,
+      borderRadius: 6,
+      border: "none",
+      background: importText.trim() ? NAVY : "#ccc",
+      color: "#fff",
+      cursor: importText.trim() ? "pointer" : "not-allowed"
+    }
+  }, "Apply Import"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setShowImport(false);
+      setImportText("");
+      setImportErr("");
+    },
+    style: {
+      padding: "8px 14px",
+      fontSize: 12,
+      borderRadius: 6,
+      border: "1px solid #ddd",
+      background: "transparent",
+      color: "#888",
+      cursor: "pointer"
+    }
+  }, "Cancel")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14,
+      borderTop: "1px solid #ddd",
+      paddingTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: NAVY,
+      marginBottom: 6,
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
+    }
+  }, "Claude Project prompt template"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #ddd",
+      borderRadius: 6,
+      padding: "10px 12px",
+      fontSize: 11,
+      color: "#444",
+      fontFamily: "monospace",
+      lineHeight: 1.7,
+      whiteSpace: "pre-wrap",
+      userSelect: "all"
+    }
+  }, CAP_MATRIX_PROMPT), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888",
+      marginTop: 6
+    }
+  }, "Tip: select all text above, copy, paste into your Claude Project, replace [PASTE PWS TEXT HERE] with the actual PWS, then paste Claude's response back into the field above."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: NAVY
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 14px",
+      textAlign: "left",
+      color: "#fff",
+      fontWeight: 700,
+      width: "22%"
+    }
+  }, "Task Area"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 14px",
+      textAlign: "left",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, "Description"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "10px 14px",
+      textAlign: "center",
+      color: "#fff",
+      fontWeight: 700,
+      width: "16%"
+    }
+  }, "D&G Experience"))), /*#__PURE__*/React.createElement("tbody", null, cm.taskAreas.map((ta, i) => /*#__PURE__*/React.createElement("tr", {
+    key: ta.id,
+    style: {
+      borderTop: "1px solid #eee",
+      background: i % 2 === 0 ? "transparent" : "#fafafa"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: ta.label,
+    onChange: e => updTA(i, "label", e.target.value),
+    style: {
+      width: "100%",
+      fontSize: 12,
+      padding: "4px 6px",
+      borderRadius: 4,
+      border: "1px solid #ddd",
+      background: "#fff",
+      color: "#1a1a1a",
+      fontWeight: 700
+    }
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: ta.description,
+    onChange: e => updTA(i, "description", e.target.value),
+    placeholder: "Description...",
+    style: {
+      width: "100%",
+      fontSize: 12,
+      padding: "4px 6px",
+      borderRadius: 4,
+      border: "1px solid #ddd",
+      background: "#fff",
+      color: "#1a1a1a"
+    }
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 14px",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: ta.experience,
+    onChange: e => updTA(i, "experience", e.target.value),
+    style: es(ta.experience)
+  }, ["", "High", "Medium", "Low"].map(o => /*#__PURE__*/React.createElement("option", {
+    key: o,
+    value: o
+  }, o || "—"))))))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => u("taskAreas", [...cm.taskAreas, {
+      id: cm.taskAreas.length,
+      label: `Task Area ${cm.taskAreas.length + 1}`,
+      description: "",
+      experience: ""
+    }]),
+    style: {
+      marginTop: 10,
+      padding: "6px 14px",
+      fontSize: 12,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Task Area")));
+}
+function IncumbentTab({
+  data,
+  setData
+}) {
+  const fields = [{
+    key: "company",
+    label: "Company Name"
+  }, {
+    key: "uei",
+    label: "UEI"
+  }, {
+    key: "setAside",
+    label: "Set-Aside"
+  }, {
+    key: "naics",
+    label: "NAICS"
+  }, {
+    key: "co",
+    label: "Contracting Officer"
+  }, {
+    key: "contractType",
+    label: "Contract Type"
+  }, {
+    key: "contractNumber",
+    label: "Contract Number"
+  }, {
+    key: "vehicle",
+    label: "Contract Vehicle"
+  }, {
+    key: "description",
+    label: "Description"
+  }, {
+    key: "ceiling",
+    label: "Ceiling Value"
+  }, {
+    key: "obligated",
+    label: "$ Obligated to Date"
+  }, {
+    key: "popStart",
+    label: "PoP Start",
+    type: "date"
+  }, {
+    key: "popEnd",
+    label: "PoP End",
+    type: "date"
+  }, {
+    key: "subs",
+    label: "Subcontractors"
+  }, {
+    key: "subsQualified",
+    label: "Subs Qualified to Bid?",
+    options: ["", "Yes", "No", "Unsure"]
+  }, {
+    key: "ftes",
+    label: "# of FTEs"
+  }, {
+    key: "bidders",
+    label: "# of Bidders Previously"
+  }, {
+    key: "qualifiedToBid",
+    label: "Qualified to Bid?",
+    options: ["", "Yes", "No"]
+  }, {
+    key: "govwinLink",
+    label: "GovWin Link"
+  }, {
+    key: "usaspendingLink",
+    label: "USASpending Link"
+  }, {
+    key: "notes",
+    label: "Incumbent Intel Notes",
+    type: "textarea"
+  }];
+  const upd = (w, k, v) => setData(p => ({
+    ...p,
+    incumbent: {
+      ...p.incumbent,
+      [w]: {
+        ...p.incumbent[w],
+        [k]: v
+      }
+    }
+  }));
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 20
+    }
+  }, ["current", "previous"].map(w => /*#__PURE__*/React.createElement("div", {
+    key: w
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: NAVY,
+      color: "#fff",
+      borderRadius: "8px 8px 0 0",
+      padding: "10px 16px",
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, w === "current" ? "Current Incumbent" : "Previous Incumbent"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderTop: "none",
+      borderRadius: "0 0 8px 8px",
+      padding: 16,
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, fields.map(f => /*#__PURE__*/React.createElement(FInput, {
+    key: f.key,
+    label: f.label,
+    value: data.incumbent[w][f.key],
+    onChange: v => upd(w, f.key, v),
+    type: f.type || "text",
+    options: f.options
+  }))))));
+}
+function CallPlanTab({
+  data,
+  setData
+}) {
+  const sections = [{
+    key: "govStaff",
+    title: "Government Staff — Relationship Map",
+    cols: ["Name", "Title", "Org", "LinkedIn/Bio", "Yrs at Agency", "Email", "Phone", "Reachout POC", "Purpose/Objective", "Last Contact", "Vision/Goals", "Hot Buttons", "Competitor Relationships", "Notes"]
+  }, {
+    key: "evalBoard",
+    title: "Evaluation Board",
+    cols: ["Name", "Title", "Org", "LinkedIn/Bio", "Yrs at Agency", "Eval Board?", "Vision/Goals", "Hot Buttons", "Competitor Relationships", "Notes"]
+  }, {
+    key: "incumbentStaff",
+    title: "Incumbent Staff Intel",
+    cols: ["Name", "Title", "Org", "LinkedIn/Bio", "Yrs at Agency", "Customer Relationship", "Education", "Certs", "Relevant Experience", "Notes"]
+  }, {
+    key: "competitorRecruiting",
+    title: "Competitors Recruiting (Same Positions)",
+    cols: ["Company", "Job Title", "Salary Range", "Link", "Years Exp", "Education", "Certs", "Responsibilities", "Notes"]
+  }];
+  const add = k => setData(p => ({
+    ...p,
+    callPlan: {
+      ...p.callPlan,
+      [k]: [...p.callPlan[k], {}]
+    }
+  }));
+  const upd = (k, i, c, v) => setData(p => {
+    const a = [...p.callPlan[k]];
+    a[i] = {
+      ...a[i],
+      [c]: v
+    };
+    return {
+      ...p,
+      callPlan: {
+        ...p.callPlan,
+        [k]: a
+      }
+    };
+  });
+  const del = (k, i) => setData(p => ({
+    ...p,
+    callPlan: {
+      ...p.callPlan,
+      [k]: p.callPlan[k].filter((_, j) => j !== i)
+    }
+  }));
+  const is = {
+    minWidth: 70,
+    width: "100%",
+    fontSize: 11,
+    padding: "4px 6px",
+    borderRadius: 4,
+    border: "1px solid #ddd",
+    background: "#fff",
+    color: "#1a1a1a"
+  };
+  return /*#__PURE__*/React.createElement("div", null, sections.map(({
+    key,
+    title,
+    cols
+  }) => /*#__PURE__*/React.createElement(Sec, {
+    key: key,
+    title: title
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowX: "auto",
+      border: "1px solid #e8eaed",
+      borderRadius: 8
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 11,
+      minWidth: 600
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#f5f6fa"
+    }
+  }, cols.map(c => /*#__PURE__*/React.createElement("th", {
+    key: c,
+    style: {
+      padding: "8px 10px",
+      textAlign: "left",
+      fontWeight: 700,
+      color: "#666",
+      whiteSpace: "nowrap"
+    }
+  }, c)), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 30
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, data.callPlan[key].length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: cols.length + 1,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#888",
+      fontSize: 12
+    }
+  }, "No entries yet \u2014 click \"+ Add Row\"")), data.callPlan[key].map((row, idx) => /*#__PURE__*/React.createElement("tr", {
+    key: idx,
+    style: {
+      borderTop: "1px solid #eee"
+    }
+  }, cols.map(c => /*#__PURE__*/React.createElement("td", {
+    key: c,
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: row[c] || "",
+    onChange: e => upd(key, idx, c, e.target.value),
+    style: is
+  }))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => del(key, idx),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#c62828",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u2715"))))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => add(key),
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Row"))));
+}
+function CompetitionTab({ data, setData }) {
+  const [openIdx, setOpenIdx] = useState(null);
+  const add = () => { setData(p => ({ ...p, competition: [...p.competition, { name:"", govwin:"", setAside:"", jvs:"", gsaMas:"", oasisPlus:"", others:"", keyRelationships:"", contracts:["","",""], notes:"", swot:{ strengths:"", weaknesses:"", threats:"", opportunities:"", howToBeat:"", pricingStrategy:"", pastPerfs:"", partners:"", recruiting:"" } }] })); setOpenIdx(data.competition.length); };
+  const del = i => { setData(p => ({ ...p, competition: p.competition.filter((_,j) => j!==i) })); setOpenIdx(null); };
+  const upd = (i,f,v) => setData(p => { const a=[...p.competition]; a[i]={...a[i],[f]:v}; return {...p,competition:a}; });
+  const updS = (i,f,v) => setData(p => { const a=[...p.competition]; a[i]={...a[i],swot:{...a[i].swot,[f]:v}}; return {...p,competition:a}; });
+  return /*#__PURE__*/React.createElement("div", null,
+    data.competition.length === 0 && /*#__PURE__*/React.createElement("div", { style:{ textAlign:"center", padding:"40px", color:"#888", fontSize:13, border:"1px dashed #ddd", borderRadius:8, marginBottom:16 } }, "No competitors added yet"),
+    data.competition.map((comp, idx) => {
+      const isOpen = openIdx === idx;
+      return /*#__PURE__*/React.createElement("div", { key:idx, style:{ border:"1px solid #e0e4ea", borderRadius:10, marginBottom:10, overflow:"hidden" } },
+        /*#__PURE__*/React.createElement("div", { onClick:()=>setOpenIdx(isOpen?null:idx), style:{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", cursor:"pointer", background:isOpen?NAVY:"#f8f9fa", borderLeft:"4px solid "+NAVY, userSelect:"none" } },
+          /*#__PURE__*/React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:10 } },
+            /*#__PURE__*/React.createElement("span", { style:{ fontSize:14, fontWeight:700, color:isOpen?"#fff":NAVY } }, comp.name || ("Competitor "+(idx+1))),
+            comp.setAside && /*#__PURE__*/React.createElement("span", { style:{ fontSize:11, padding:"2px 8px", borderRadius:10, background:isOpen?"rgba(255,255,255,0.15)":"#e8eaed", color:isOpen?"#fff":"#555", fontWeight:600 } }, comp.setAside)
+          ),
+          /*#__PURE__*/React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:10 } },
+            /*#__PURE__*/React.createElement("button", { onClick:e=>{e.stopPropagation();del(idx);}, style:{ background:"transparent", border:"1px solid "+(isOpen?"rgba(255,255,255,0.4)":"#f44336"), color:isOpen?"rgba(255,255,255,0.7)":"#f44336", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" } }, "Remove"),
+            /*#__PURE__*/React.createElement("span", { style:{ fontSize:16, color:isOpen?"#fff":"#aaa", fontWeight:700 } }, isOpen?"▴":"▾")
+          )
+        ),
+        isOpen && /*#__PURE__*/React.createElement("div", { style:{ padding:"18px 20px", background:"#fff" } },
+          /*#__PURE__*/React.createElement(Grid, { cols:3 },
+            /*#__PURE__*/React.createElement(FInput, { label:"Company Name", value:comp.name, onChange:v=>upd(idx,"name",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"GovWin Link", value:comp.govwin, onChange:v=>upd(idx,"govwin",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Set-Aside", value:comp.setAside, onChange:v=>upd(idx,"setAside",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"JVs", value:comp.jvs, onChange:v=>upd(idx,"jvs",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"GSA MAS", value:comp.gsaMas, onChange:v=>upd(idx,"gsaMas",v), options:["","Yes","No","Unsure"] }),
+            /*#__PURE__*/React.createElement(FInput, { label:"OASIS+", value:comp.oasisPlus, onChange:v=>upd(idx,"oasisPlus",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Other Vehicles", value:comp.others, onChange:v=>upd(idx,"others",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Key Relationships", value:comp.keyRelationships, onChange:v=>upd(idx,"keyRelationships",v) })
+          ),
+          /*#__PURE__*/React.createElement("div", { style:{ marginTop:12 } },
+            /*#__PURE__*/React.createElement(Lbl, null, "Key Contracts (up to 3)"),
+            /*#__PURE__*/React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginTop:6 } },
+              comp.contracts.map((c,ci) => /*#__PURE__*/React.createElement("input", { key:ci, value:c, onChange:e=>{const a=[...comp.contracts];a[ci]=e.target.value;upd(idx,"contracts",a);}, placeholder:"Contract "+(ci+1), style:{ fontSize:12, padding:"5px 8px", borderRadius:4, border:"1px solid #ddd", background:"#fff", color:"#1a1a1a" } }))
+            )
+          ),
+          /*#__PURE__*/React.createElement("div", { style:{ marginTop:14, background:"#f8f9fa", borderRadius:8, padding:14 } },
+            /*#__PURE__*/React.createElement("div", { style:{ fontSize:11, fontWeight:700, color:NAVY, marginBottom:10, textTransform:"uppercase", letterSpacing:"0.07em" } }, "SWOT / Black Hat Analysis"),
+            /*#__PURE__*/React.createElement(Grid, { cols:2 },
+              [["strengths","Strengths"],["weaknesses","Weaknesses"],["threats","Threats"],["opportunities","Opportunities"],["howToBeat","How Will We Beat Them?"],["pricingStrategy","Anticipated Pricing Strategy"],["pastPerfs","Top Past Performances"],["partners","Other Partners"],["recruiting","Actively Recruiting For?"]].map(([f,l]) => /*#__PURE__*/React.createElement(FInput, { key:f, label:l, value:comp.swot[f], onChange:v=>updS(idx,f,v), type:"textarea" }))
+            )
+          ),
+          /*#__PURE__*/React.createElement("div", { style:{ marginTop:10 } },
+            /*#__PURE__*/React.createElement(FInput, { label:"Notes", value:comp.notes, onChange:v=>upd(idx,"notes",v), type:"textarea", wide:true })
+          )
+        )
+      );
+    }),
+    /*#__PURE__*/React.createElement("button", { onClick:add, style:{ padding:"8px 18px", fontSize:13, borderRadius:6, border:"2px solid "+NAVY, background:"transparent", color:NAVY, cursor:"pointer", fontWeight:800 } }, "+ Add Competitor")
+  );
+}
+
+function TeamingTab({ data, setData }) {
+  const [openIdx, setOpenIdx] = useState(null);
+  const add = () => { setData(p => ({ ...p, teaming: [...p.teaming, { name:"", setAside:"", certs:"", website:"", workshare:"", role:"", pastPerfs:"", gaps:"", ndaStatus:"", taStatus:"", keyContact:"", notes:"" }] })); setOpenIdx(data.teaming.length); };
+  const del = i => { setData(p => ({ ...p, teaming: p.teaming.filter((_,j) => j!==i) })); setOpenIdx(null); };
+  const upd = (i,f,v) => setData(p => { const a=[...p.teaming]; a[i]={...a[i],[f]:v}; return {...p,teaming:a}; });
+  return /*#__PURE__*/React.createElement("div", null,
+    data.teaming.length === 0 && /*#__PURE__*/React.createElement("div", { style:{ textAlign:"center", padding:"40px", color:"#888", fontSize:13, border:"1px dashed #ddd", borderRadius:8, marginBottom:16 } }, "No teaming partners added yet"),
+    data.teaming.map((pt, idx) => {
+      const isOpen = openIdx === idx;
+      return /*#__PURE__*/React.createElement("div", { key:idx, style:{ border:"1px solid #e0e4ea", borderRadius:10, marginBottom:10, overflow:"hidden" } },
+        /*#__PURE__*/React.createElement("div", { onClick:()=>setOpenIdx(isOpen?null:idx), style:{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", cursor:"pointer", background:isOpen?ORANGE:"#f8f9fa", borderLeft:"4px solid "+ORANGE, userSelect:"none" } },
+          /*#__PURE__*/React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:10 } },
+            /*#__PURE__*/React.createElement("span", { style:{ fontSize:14, fontWeight:700, color:isOpen?"#fff":NAVY } }, pt.name || ("Partner "+(idx+1))),
+            pt.role && /*#__PURE__*/React.createElement("span", { style:{ fontSize:11, padding:"2px 8px", borderRadius:10, background:isOpen?"rgba(255,255,255,0.2)":"#e8eaed", color:isOpen?"#fff":"#555", fontWeight:600 } }, pt.role)
+          ),
+          /*#__PURE__*/React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:10 } },
+            /*#__PURE__*/React.createElement("button", { onClick:e=>{e.stopPropagation();del(idx);}, style:{ background:"transparent", border:"1px solid "+(isOpen?"rgba(255,255,255,0.4)":"#f44336"), color:isOpen?"rgba(255,255,255,0.7)":"#f44336", borderRadius:4, padding:"2px 8px", fontSize:11, cursor:"pointer" } }, "Remove"),
+            /*#__PURE__*/React.createElement("span", { style:{ fontSize:16, color:isOpen?"#fff":"#aaa", fontWeight:700 } }, isOpen?"▴":"▾")
+          )
+        ),
+        isOpen && /*#__PURE__*/React.createElement("div", { style:{ padding:"18px 20px", background:"#fff" } },
+          /*#__PURE__*/React.createElement(Grid, { cols:3 },
+            /*#__PURE__*/React.createElement(FInput, { label:"Company Name", value:pt.name, onChange:v=>upd(idx,"name",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Set-Aside / Size", value:pt.setAside, onChange:v=>upd(idx,"setAside",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Certifications", value:pt.certs, onChange:v=>upd(idx,"certs",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Website", value:pt.website, onChange:v=>upd(idx,"website",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Key Contact", value:pt.keyContact, onChange:v=>upd(idx,"keyContact",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Workshare %", value:pt.workshare, onChange:v=>upd(idx,"workshare",v) }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Role on Team", value:pt.role, onChange:v=>upd(idx,"role",v) }),
+            /*#__PURE__*/React.createElement("div", { style:{ gridColumn:"1 / -1", display:"flex", gap:16, marginTop:4, marginBottom:4 } },
+              [["ndaStatus","NDA Executed"],["taStatus","TA Executed"]].map(([field, label]) => {
+                const isChecked = pt[field] === "Executed";
+                return /*#__PURE__*/React.createElement("div", { key:field, onClick:()=>upd(idx, field, isChecked ? "" : "Executed"), style:{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", borderRadius:8, border:"2px solid "+(isChecked?ORANGE:"#d0d5dd"), background:isChecked?"#fff8f2":"#fff", cursor:"pointer", flex:1, userSelect:"none" } },
+                  /*#__PURE__*/React.createElement("div", { style:{ width:22, height:22, borderRadius:6, flexShrink:0, border:isChecked?"none":"2px solid #d0d5dd", background:isChecked?ORANGE:"#fff", display:"flex", alignItems:"center", justifyContent:"center" } },
+                    isChecked && /*#__PURE__*/React.createElement("span", { style:{ color:"#fff", fontSize:14, fontWeight:700 } }, "✓")
+                  ),
+                  /*#__PURE__*/React.createElement("div", null,
+                    /*#__PURE__*/React.createElement("div", { style:{ fontSize:13, fontWeight:700, color:isChecked?ORANGE:NAVY } }, label),
+                    /*#__PURE__*/React.createElement("div", { style:{ fontSize:11, color:"#888", marginTop:1 } }, isChecked ? "Complete" : "Pending")
+                  )
+                );
+              })
+            ),
+            /*#__PURE__*/React.createElement(FInput, { label:"Relevant Past Performances", value:pt.pastPerfs, onChange:v=>upd(idx,"pastPerfs",v), type:"textarea", wide:true }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Gaps They Fill", value:pt.gaps, onChange:v=>upd(idx,"gaps",v), type:"textarea" }),
+            /*#__PURE__*/React.createElement(FInput, { label:"Notes", value:pt.notes, onChange:v=>upd(idx,"notes",v), type:"textarea" })
+          )
+        )
+      );
+    }),
+    /*#__PURE__*/React.createElement("button", { onClick:add, style:{ padding:"8px 18px", fontSize:13, borderRadius:6, border:"2px solid "+ORANGE, background:"transparent", color:ORANGE, cursor:"pointer", fontWeight:800 } }, "+ Add Teaming Partner")
+  );
+}
+
+function PricingTab({
+  data,
+  setData
+}) {
+  const u = (k, v) => setData(p => ({
+    ...p,
+    pricing: {
+      ...p.pricing,
+      [k]: v
+    }
+  }));
+  const pr = data.pricing;
+  const addF = () => u("fpdsData", [...pr.fpdsData, {
+    contractId: "",
+    mod: "",
+    obligation: "",
+    dateSigned: "",
+    contractYear: "",
+    comments: ""
+  }]);
+  const updF = (i, f, v) => {
+    const a = [...pr.fpdsData];
+    a[i] = {
+      ...a[i],
+      [f]: v
+    };
+    u("fpdsData", a);
+  };
+  const delF = i => u("fpdsData", pr.fpdsData.filter((_, j) => j !== i));
+  const tv = parseFloat(pr.totalValue) || 0,
+    tp = parseFloat(pr.targetPct) / 100 || -0.05,
+    fte = parseFloat(pr.estimatedFtes) || 1;
+  const ptw = tv / 3 * 1.02 * 1.02 / fte * 7 * (1 + tp);
+  const fmt = n => isNaN(n) || !isFinite(n) || n === 0 ? "—" : "$" + Math.round(n).toLocaleString();
+  const is = {
+    width: "100%",
+    fontSize: 12,
+    padding: "4px 6px",
+    borderRadius: 4,
+    border: "1px solid #ddd",
+    background: "#fff",
+    color: "#1a1a1a"
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
+    title: "Incumbent Contract Information"
+  }, /*#__PURE__*/React.createElement(Grid, {
+    cols: 3
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Incumbent",
+    value: pr.incumbent,
+    onChange: v => u("incumbent", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Contract Number",
+    value: pr.contractNumber,
+    onChange: v => u("contractNumber", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Total Contract Value ($)",
+    value: pr.totalValue,
+    onChange: v => u("totalValue", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Total Obligated ($)",
+    value: pr.totalObligated,
+    onChange: v => u("totalObligated", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "PoP Start",
+    value: pr.popStart,
+    onChange: v => u("popStart", v),
+    type: "date"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "PoP End",
+    value: pr.popEnd,
+    onChange: v => u("popEnd", v),
+    type: "date"
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Estimated FTEs",
+    value: pr.estimatedFtes,
+    onChange: v => u("estimatedFtes", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Target % vs Incumbent (e.g. -5)",
+    value: pr.targetPct,
+    onChange: v => u("targetPct", v)
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Price-to-Win (PTW) Estimate"
+  }, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      background: "#f0f4f8",
+      border: `1px solid ${NAVY}33`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#666",
+      marginBottom: 12
+    }
+  }, "Auto-calculated. Assumes 3-year base/OY1/OY2 with 2% escalation. Adjust Target % to model scenarios."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3,1fr)",
+      gap: 12
+    }
+  }, [["Base Year", fmt(ptw)], ["Option Year 1", fmt(ptw * 1.02)], ["Option Year 2", fmt(ptw * 1.02 * 1.02)]].map(([l, v]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      background: "#fff",
+      borderRadius: 8,
+      padding: "14px 16px",
+      border: `1px solid ${NAVY}22`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#888",
+      marginBottom: 4
+    }
+  }, l), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 800,
+      color: NAVY
+    }
+  }, v)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: "8px 12px",
+      background: ORANGE + "22",
+      borderRadius: 6,
+      fontSize: 12,
+      color: ORANGE,
+      fontWeight: 700
+    }
+  }, "Target: ", pr.targetPct, "% vs incumbent final OY price")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement(FInput, {
+    label: "Pricing Strategy Notes",
+    value: pr.notes,
+    onChange: v => u("notes", v),
+    type: "textarea",
+    wide: true
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "FPDS Contract Data"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#f5f6fa"
+    }
+  }, ["Contract ID", "Mod", "Action Obligation ($)", "Date Signed", "Contract Year", "Comments", ""].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "8px 12px",
+      textAlign: "left",
+      fontWeight: 700,
+      color: "#666"
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, pr.fpdsData.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 7,
+    style: {
+      padding: "16px",
+      textAlign: "center",
+      color: "#888",
+      fontSize: 12
+    }
+  }, "No FPDS data entered")), pr.fpdsData.map((row, idx) => /*#__PURE__*/React.createElement("tr", {
+    key: idx,
+    style: {
+      borderTop: "1px solid #eee"
+    }
+  }, ["contractId", "mod", "obligation", "dateSigned", "contractYear", "comments"].map(f => /*#__PURE__*/React.createElement("td", {
+    key: f,
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: row[f] || "",
+    onChange: e => updF(idx, f, e.target.value),
+    style: is
+  }))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => delF(idx),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#c62828",
+      cursor: "pointer"
+    }
+  }, "\u2715"))))))), /*#__PURE__*/React.createElement("button", {
+    onClick: addF,
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add FPDS Row")));
+}
+function SolutionTab({
+  data,
+  setData
+}) {
+  const u = (k, v) => setData(p => ({
+    ...p,
+    solution: {
+      ...p.solution,
+      [k]: v
+    }
+  }));
+  const s = data.solution;
+  const is = {
+    width: "100%",
+    fontSize: 12,
+    padding: "4px 6px",
+    borderRadius: 4,
+    border: "1px solid #ddd",
+    background: "#fff",
+    color: "#1a1a1a"
+  };
+  const CONF = ["", "High", "Medium", "Low"];
+  const CONF_COLOR = {
+    "High": "#2e7d32",
+    "Medium": "#e65100",
+    "Low": "#c62828",
+    "": " #888"
+  };
+  const addRow = (key, blank) => u(key, [...(s[key] || []), blank]);
+  const delRow = (key, i) => u(key, (s[key] || []).filter((_, j) => j !== i));
+  const updRow = (key, i, f, v) => {
+    const a = [...(s[key] || [])];
+    a[i] = {
+      ...a[i],
+      [f]: v
+    };
+    u(key, a);
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
+    title: "1. Customer Hot Buttons"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888",
+      marginBottom: 10
+    }
+  }, "Rank the customer's true priorities based on intel \u2014 not just what's in the PWS. High confidence = directly stated by customer. Medium = inferred from context. Low = assumed."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: NAVY
+    }
+  }, ["#", "Hot Button / Priority", "Intel Source", "Confidence"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "9px 12px",
+      textAlign: "left",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, h)), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 32,
+      background: NAVY
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, (s.hotButtons || []).map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderTop: "1px solid #eee",
+      background: i % 2 === 0 ? "transparent" : "#fafafa"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      color: "#888",
+      fontWeight: 700,
+      width: 28
+    }
+  }, i + 1), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.button || "",
+    onChange: e => updRow("hotButtons", i, "button", e.target.value),
+    placeholder: "e.g. Transition risk reduction, cost containment...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.source || "",
+    onChange: e => updRow("hotButtons", i, "source", e.target.value),
+    placeholder: "Industry day, COR conversation, RFI...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px",
+      width: 110
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: r.confidence || "",
+    onChange: e => updRow("hotButtons", i, "confidence", e.target.value),
+    style: {
+      fontSize: 12,
+      padding: "4px 6px",
+      borderRadius: 4,
+      border: "1px solid #ddd",
+      background: "#fff",
+      color: CONF_COLOR[r.confidence || ""],
+      fontWeight: 700,
+      width: "100%"
+    }
+  }, CONF.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o,
+    value: o
+  }, o || "—")))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => delRow("hotButtons", i),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#ccc",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u2715")))), (s.hotButtons || []).length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 5,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#aaa",
+      fontSize: 12
+    }
+  }, "No hot buttons added yet"))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addRow("hotButtons", {
+      button: "",
+      source: "",
+      confidence: ""
+    }),
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Hot Button"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 14
+    }
+  }, /*#__PURE__*/React.createElement(Lbl, null, "Customer Vision Statement"), /*#__PURE__*/React.createElement("textarea", {
+    value: s.customerVision || "",
+    onChange: e => u("customerVision", e.target.value),
+    placeholder: "In the customer's own words (or inferred from intel) \u2014 what does success look like for this contract?",
+    rows: 3,
+    style: {
+      width: "100%",
+      padding: "8px 10px",
+      fontSize: 12,
+      borderRadius: 6,
+      border: "1px solid #d0d5dd",
+      background: "#fff",
+      color: "#1a1a1a",
+      resize: "vertical",
+      lineHeight: 1.5,
+      fontFamily: "inherit"
+    }
+  }))), /*#__PURE__*/React.createElement(Sec, {
+    title: "2. Win Themes"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888",
+      marginBottom: 10
+    }
+  }, "3\u20135 themes that directly answer the customer's top hot buttons. Each theme must map to at least one evaluated PWS section \u2014 if it doesn't map to a graded area, it won't affect the score."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: NAVY
+    }
+  }, ["#", "Win Theme Statement", "Addresses Hot Button #", "PWS Task Areas (graded)"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "9px 12px",
+      textAlign: "left",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, h)), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 32,
+      background: NAVY
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, (s.winThemes || []).map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderTop: "1px solid #eee",
+      background: i % 2 === 0 ? "transparent" : "#fafafa"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      fontWeight: 800,
+      color: ORANGE,
+      width: 28
+    }
+  }, i + 1), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.theme || "",
+    onChange: e => updRow("winThemes", i, "theme", e.target.value),
+    placeholder: "Theme statement...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px",
+      width: 140
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.hotButton || "",
+    onChange: e => updRow("winThemes", i, "hotButton", e.target.value),
+    placeholder: "HB #1, #3...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px",
+      width: 180
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.taskAreas || "",
+    onChange: e => updRow("winThemes", i, "taskAreas", e.target.value),
+    placeholder: "TA 1, TA 4...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => delRow("winThemes", i),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#ccc",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u2715")))), (s.winThemes || []).length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 5,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#aaa",
+      fontSize: 12
+    }
+  }, "No win themes added yet"))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addRow("winThemes", {
+      theme: "",
+      hotButton: "",
+      taskAreas: ""
+    }),
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Win Theme")), /*#__PURE__*/React.createElement(Sec, {
+    title: "3. Discriminators"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888",
+      marginBottom: 10
+    }
+  }, "Factual claims about what D&G does that competitors genuinely cannot match. Each discriminator needs a customer need it addresses, a specific competitor it beats, and hard proof. If you can't fill all four columns, it's not a real discriminator."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: NAVY
+    }
+  }, ["#", "D&G Discriminating Claim", "Customer Need It Addresses", "Beats Competitor", "Proof / Evidence"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "9px 12px",
+      textAlign: "left",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, h)), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 32,
+      background: NAVY
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, (s.discriminators || []).map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderTop: "1px solid #eee",
+      background: i % 2 === 0 ? "transparent" : "#fafafa"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      color: "#888",
+      fontWeight: 700,
+      width: 28
+    }
+  }, i + 1), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.claim || "",
+    onChange: e => updRow("discriminators", i, "claim", e.target.value),
+    placeholder: "What D&G uniquely offers...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.customerNeed || "",
+    onChange: e => updRow("discriminators", i, "customerNeed", e.target.value),
+    placeholder: "Customer need addressed...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px",
+      width: 140
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.beatsCompetitor || "",
+    onChange: e => updRow("discriminators", i, "beatsCompetitor", e.target.value),
+    placeholder: "Competitor name...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.proof || "",
+    onChange: e => updRow("discriminators", i, "proof", e.target.value),
+    placeholder: "CPAR, metric, contract...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => delRow("discriminators", i),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#ccc",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u2715")))), (s.discriminators || []).length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 6,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#aaa",
+      fontSize: 12
+    }
+  }, "No discriminators added yet"))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addRow("discriminators", {
+      claim: "",
+      customerNeed: "",
+      beatsCompetitor: "",
+      proof: ""
+    }),
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Discriminator")), /*#__PURE__*/React.createElement(Sec, {
+    title: "4. Feature \u2014 Benefit \u2014 Proof"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888",
+      marginBottom: 10
+    }
+  }, "The core proposal writing tool. Feature = what D&G offers. Benefit = what it means for the customer (quantified). Proof = the evidence. Eval Section = which proposal volume/section this supports."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: NAVY
+    }
+  }, ["#", "Feature (What We Offer)", "Benefit (So What for Customer)", "Proof / Metric", "Eval Section"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "9px 12px",
+      textAlign: "left",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, h)), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 32,
+      background: NAVY
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, (s.fbp || []).map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderTop: "1px solid #eee",
+      background: i % 2 === 0 ? "transparent" : "#fafafa"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      color: "#888",
+      fontWeight: 700,
+      width: 28
+    }
+  }, i + 1), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.feature || "",
+    onChange: e => updRow("fbp", i, "feature", e.target.value),
+    placeholder: "D&G capability or approach...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.benefit || "",
+    onChange: e => updRow("fbp", i, "benefit", e.target.value),
+    placeholder: "Reduces X by Y%, ensures Z...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.proof || "",
+    onChange: e => updRow("fbp", i, "proof", e.target.value),
+    placeholder: "IGC CPAR, DLA metric...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px",
+      width: 130
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.evalSection || "",
+    onChange: e => updRow("fbp", i, "evalSection", e.target.value),
+    placeholder: "Vol. II, Sec. 3...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => delRow("fbp", i),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#ccc",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u2715")))), (s.fbp || []).length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 6,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#aaa",
+      fontSize: 12
+    }
+  }, "No FBP rows added yet"))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addRow("fbp", {
+      feature: "",
+      benefit: "",
+      proof: "",
+      evalSection: ""
+    }),
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add FBP Row")), /*#__PURE__*/React.createElement(Sec, {
+    title: "5. Ghost Strategy"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888",
+      marginBottom: 10
+    }
+  }, "How to implicitly highlight competitor weaknesses without naming them. Write proposal language that makes evaluators think of the competitor's gap while reading about D&G's strength. Never name competitors directly in proposals."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: NAVY
+    }
+  }, ["#", "Competitor Weakness", "Our Countering Strength", "Ghosting Language (proposal-ready)"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "9px 12px",
+      textAlign: "left",
+      color: "#fff",
+      fontWeight: 700
+    }
+  }, h)), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 32,
+      background: NAVY
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, (s.ghosts || []).map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderTop: "1px solid #eee",
+      background: i % 2 === 0 ? "transparent" : "#fafafa"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      color: "#888",
+      fontWeight: 700,
+      width: 28
+    }
+  }, i + 1), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.competitorWeakness || "",
+    onChange: e => updRow("ghosts", i, "competitorWeakness", e.target.value),
+    placeholder: "Their known gap...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.ourApproach || "",
+    onChange: e => updRow("ghosts", i, "ourApproach", e.target.value),
+    placeholder: "D&G's countering capability...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: r.language || "",
+    onChange: e => updRow("ghosts", i, "language", e.target.value),
+    placeholder: "Unlike firms without X experience, D&G...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => delRow("ghosts", i),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#ccc",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u2715")))), (s.ghosts || []).length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 5,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#aaa",
+      fontSize: 12
+    }
+  }, "No ghost strategies added yet"))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addRow("ghosts", {
+      competitorWeakness: "",
+      ourApproach: "",
+      language: ""
+    }),
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Ghost Strategy")), /*#__PURE__*/React.createElement(Sec, {
+    title: "6. Capability Gaps & Mitigation"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#888",
+      marginBottom: 10
+    }
+  }, "Where D&G has gaps against the PWS requirements and how you plan to close them \u2014 teaming, hiring, or subcontracting."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#f5f6fa"
+    }
+  }, ["#", "Gap Description", "Mitigation Plan"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "8px 12px",
+      textAlign: "left",
+      fontWeight: 700,
+      color: "#666"
+    }
+  }, h)), /*#__PURE__*/React.createElement("th", {
+    style: {
+      width: 32
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, (s.gaps || []).map((g, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i,
+    style: {
+      borderTop: i > 0 ? "1px solid #eee" : undefined
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      color: "#888",
+      fontWeight: 700,
+      width: 28
+    }
+  }, i + 1), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: g.description || "",
+    onChange: e => updRow("gaps", i, "description", e.target.value),
+    placeholder: "Gap area...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: g.mitigation || "",
+    onChange: e => updRow("gaps", i, "mitigation", e.target.value),
+    placeholder: "Teaming partner, hire, subcontract...",
+    style: is
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => delRow("gaps", i),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#ccc",
+      cursor: "pointer",
+      fontSize: 14
+    }
+  }, "\u2715")))), (s.gaps || []).length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 4,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#aaa",
+      fontSize: 12
+    }
+  }, "No gaps added yet"))))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addRow("gaps", {
+      description: "",
+      mitigation: ""
+    }),
+    style: {
+      marginTop: 8,
+      padding: "5px 12px",
+      fontSize: 11,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Gap")));
+}
+function ActionsTab({
+  data,
+  setData
+}) {
+  const upd = (w, i, f, v) => setData(p => {
+    const a = [...p.actionItems[w]];
+    a[i] = {
+      ...a[i],
+      [f]: v
+    };
+    return {
+      ...p,
+      actionItems: {
+        ...p.actionItems,
+        [w]: a
+      }
+    };
+  });
+  const markDone = i => setData(p => {
+    const item = {
+      ...p.actionItems.open[i],
+      dateCompleted: new Date().toISOString().split("T")[0]
+    };
+    return {
+      ...p,
+      actionItems: {
+        open: p.actionItems.open.filter((_, j) => j !== i),
+        completed: [...p.actionItems.completed, item]
+      }
+    };
+  });
+  const reopen = i => setData(p => {
+    const item = {
+      ...p.actionItems.completed[i],
+      dateCompleted: ""
+    };
+    return {
+      ...p,
+      actionItems: {
+        open: [...p.actionItems.open, item],
+        completed: p.actionItems.completed.filter((_, j) => j !== i)
+      }
+    };
+  });
+  const add = () => setData(p => ({
+    ...p,
+    actionItems: {
+      ...p.actionItems,
+      open: [...p.actionItems.open, {
+        id: Date.now(),
+        actionee: "",
+        task: "",
+        dateAssigned: "",
+        dueDate: "",
+        dateCompleted: "",
+        comments: ""
+      }]
+    }
+  }));
+  const COLS = [{
+    key: "actionee",
+    label: "Actionee",
+    w: 90
+  }, {
+    key: "task",
+    label: "Task",
+    w: 200
+  }, {
+    key: "dateAssigned",
+    label: "Assigned",
+    w: 105,
+    type: "date"
+  }, {
+    key: "dueDate",
+    label: "Due Date",
+    w: 105,
+    type: "date"
+  }, {
+    key: "comments",
+    label: "Comments",
+    w: 150
+  }];
+  const tbl = (w, rows) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#f5f6fa"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      width: 32,
+      fontWeight: 700,
+      color: "#666"
+    }
+  }, "#"), COLS.map(c => /*#__PURE__*/React.createElement("th", {
+    key: c.key,
+    style: {
+      padding: "8px 12px",
+      textAlign: "left",
+      fontWeight: 700,
+      color: "#666"
+    }
+  }, c.label)), w === "completed" && /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      fontWeight: 700,
+      color: "#666"
+    }
+  }, "Completed"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      width: 70
+    }
+  }))), /*#__PURE__*/React.createElement("tbody", null, rows.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 8,
+    style: {
+      padding: "20px",
+      textAlign: "center",
+      color: "#888",
+      fontSize: 12
+    }
+  }, "No items")), rows.map((row, idx) => /*#__PURE__*/React.createElement("tr", {
+    key: row.id || idx,
+    style: {
+      borderTop: "1px solid #eee",
+      background: w === "completed" ? "#f0f7f0" : undefined
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 12px",
+      color: "#888",
+      fontWeight: 700
+    }
+  }, idx + 1), COLS.map(c => /*#__PURE__*/React.createElement("td", {
+    key: c.key,
+    style: { padding: "6px 8px" }
+  }, c.key === "actionee"
+    ? /*#__PURE__*/React.createElement("select", {
+        value: row[c.key] || "",
+        onChange: e => upd(w, idx, c.key, e.target.value),
+        style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" }
+      }, DG_PEOPLE.map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Assign --")))
+    : /*#__PURE__*/React.createElement("input", {
+        type: c.type || "text",
+        value: row[c.key] || "",
+        onChange: e => upd(w, idx, c.key, e.target.value),
+        style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" }
+      }))), w === "completed" && /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 12px",
+      fontSize: 11,
+      color: "#2e7d32",
+      fontWeight: 700
+    }
+  }, row.dateCompleted), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "6px 10px"
+    }
+  }, w === "open" ? /*#__PURE__*/React.createElement("button", {
+    onClick: () => markDone(idx),
+    style: {
+      fontSize: 11,
+      padding: "3px 8px",
+      borderRadius: 4,
+      border: "1px solid #2e7d32",
+      color: "#2e7d32",
+      background: "transparent",
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "\u2713 Done") : /*#__PURE__*/React.createElement("button", {
+    onClick: () => reopen(idx),
+    style: {
+      fontSize: 11,
+      padding: "3px 8px",
+      borderRadius: 4,
+      border: "1px solid #888",
+      color: "#888",
+      background: "transparent",
+      cursor: "pointer"
+    }
+  }, "Reopen")))))));
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
+    title: "Open Action Items"
+  }, tbl("open", data.actionItems.open), /*#__PURE__*/React.createElement("button", {
+    onClick: add,
+    style: {
+      padding: "5px 14px",
+      fontSize: 12,
+      borderRadius: 6,
+      border: `1px solid ${ORANGE}`,
+      background: "transparent",
+      color: ORANGE,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, "+ Add Action Item")), data.actionItems.completed.length > 0 && /*#__PURE__*/React.createElement(Sec, {
+    title: "Completed Actions"
+  }, tbl("completed", data.actionItems.completed)));
+}
+
+// ── PWIN SCORECARD ────────────────────────────────────────────────
+const PWIN_FACTORS = [{
+  section: "Customer & Relationship",
+  items: [{
+    id: "cust_rel",
+    label: "Customer relationship depth",
+    sub: "Access to PM, CO, COR in last 90 days; trusted advisor vs. vendor",
+    weight: 0.25
+  }, {
+    id: "req_shape",
+    label: "Requirement shaping",
+    sub: "Evidence of influencing PWS, IGCE, or eval criteria before RFP drop",
+    weight: 0.10
+  }]
+}, {
+  section: "Competitive Position",
+  items: [{
+    id: "incumbent",
+    label: "Incumbent / competitive advantage",
+    sub: "Are you incumbent? If displacing, is customer visibly dissatisfied?",
+    weight: 0.15
+  }, {
+    id: "teaming",
+    label: "Teaming strategy",
+    sub: "Key partners locked; competitors blocked from critical subs",
+    weight: 0.10
+  }]
+}, {
+  section: "Technical & Past Performance",
+  items: [{
+    id: "tech_fit",
+    label: "Technical solution fit",
+    sub: "DMSMS, logistics IT, supply chain analytics match to requirement",
+    weight: 0.20
+  }, {
+    id: "past_perf",
+    label: "Past performance relevance",
+    sub: "IGC, GBFMD, DLA J34 CPARs — recency, scope, customer match",
+    weight: 0.10
+  }]
+}, {
+  section: "Price & Business",
+  items: [{
+    id: "price",
+    label: "Price competitiveness",
+    sub: "Can D&G price to win and sustain margin? PTW analysis done?",
+    weight: 0.10
+  }]
+}];
+function calcPwin(scores) {
+  const allItems = PWIN_FACTORS.flatMap(s => s.items);
+  const scored = allItems.filter(i => scores[i.id] > 0);
+  if (scored.length === 0) return {
+    composite: 0,
+    pwin: 0,
+    verdict: "",
+    color: "#aaa"
+  };
+  let weightedSum = 0,
+    totalWeight = 0;
+  allItems.forEach(item => {
+    if (scores[item.id] > 0) {
+      weightedSum += scores[item.id] * item.weight;
+      totalWeight += item.weight;
+    }
+  });
+  const normalized = weightedSum / totalWeight;
+  const composite = Math.round(normalized * 20);
+  const completeness = scored.length / allItems.length;
+  const pwin = Math.round(composite * (0.7 + 0.3 * completeness));
+  let verdict = "",
+    color = "#aaa";
+  if (pwin >= 60) {
+    verdict = "Must Win";
+    color = "#2e7d32";
+  } else if (pwin >= 40) {
+    verdict = "Pursue";
+    color = "#e65100";
+  } else if (pwin >= 25) {
+    verdict = "Qualify";
+    color = "#f57c00";
+  } else if (pwin > 0) {
+    verdict = "No Bid";
+    color = "#c62828";
+  }
+  return {
+    composite,
+    pwin,
+    verdict,
+    color
+  };
+}
+function PwinBadge({
+  scores,
+  compact = false
+}) {
+  const {
+    pwin,
+    verdict,
+    color
+  } = calcPwin(scores || {});
+  if (!verdict) return compact ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#aaa"
+    }
+  }, "Not scored") : null;
+  const bg = color + "18";
+  if (compact) return /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "2px 8px",
+      borderRadius: 10,
+      background: bg,
+      color: color,
+      border: `1px solid ${color}44`
+    }
+  }, verdict, " \xB7 ", pwin, "%");
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "3px 10px",
+      borderRadius: 10,
+      background: bg,
+      color: color,
+      border: `1px solid ${color}44`
+    }
+  }, verdict), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 20,
+      fontWeight: 800,
+      color: color
+    }
+  }, pwin, "%"));
+}
+function PwinTab({
+  data,
+  setData
+}) {
+  const u = (k, v) => setData(p => ({
+    ...p,
+    pwin: {
+      ...p.pwin,
+      [k]: v,
+      lastUpdated: new Date().toISOString()
+    }
+  }));
+  const setScore = (id, val) => {
+    const newScores = {
+      ...data.pwin.scores,
+      [id]: val
+    };
+    setData(p => ({
+      ...p,
+      pwin: {
+        ...p.pwin,
+        scores: newScores,
+        lastUpdated: new Date().toISOString()
+      }
+    }));
+  };
+  const scores = data.pwin.scores || {};
+  const {
+    composite,
+    pwin,
+    verdict,
+    color
+  } = calcPwin(scores);
+  const allItems = PWIN_FACTORS.flatMap(s => s.items);
+  const scored = allItems.filter(i => scores[i.id] > 0).length;
+  const SCORE_COLORS = {
+    1: {
+      bg: "#FCEBEB",
+      border: "#E24B4A",
+      text: "#791F1F"
+    },
+    2: {
+      bg: "#FAEEDA",
+      border: "#BA7517",
+      text: "#633806"
+    },
+    3: {
+      bg: "#FFF8E1",
+      border: "#EF9F27",
+      text: "#412402"
+    },
+    4: {
+      bg: "#EAF3DE",
+      border: "#639922",
+      text: "#27500A"
+    },
+    5: {
+      bg: "#EAF3DE",
+      border: "#3B6D11",
+      text: "#173404"
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 14,
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#888",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      marginBottom: 6
+    }
+  }, "Composite Score"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 28,
+      fontWeight: 800,
+      color: NAVY
+    }
+  }, scored > 0 ? composite + "/100" : "—"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#aaa",
+      marginTop: 4
+    }
+  }, scored, "/", allItems.length, " factors scored")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#888",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      marginBottom: 6
+    }
+  }, "Pwin Estimate"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 28,
+      fontWeight: 800,
+      color: color
+    }
+  }, scored > 0 ? pwin + "%" : "—"), data.pwin.lastUpdated && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#aaa",
+      marginTop: 4
+    }
+  }, "Updated ", new Date(data.pwin.lastUpdated).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      border: "1px solid #e8eaed",
+      borderRadius: 10,
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "#888",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+      marginBottom: 6
+    }
+  }, "Recommendation"), verdict ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      marginTop: 4,
+      fontSize: 15,
+      fontWeight: 800,
+      padding: "4px 14px",
+      borderRadius: 8,
+      background: color + "18",
+      color: color,
+      border: `1px solid ${color}44`
+    }
+  }, verdict) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 800,
+      color: "#aaa"
+    }
+  }, "\u2014"))), scored > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 8,
+      background: "#eee",
+      borderRadius: 4,
+      overflow: "hidden",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${pwin}%`,
+      height: "100%",
+      background: color,
+      borderRadius: 4,
+      transition: "width 0.4s"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      fontSize: 10,
+      color: "#aaa"
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "No Bid (<25%)"), /*#__PURE__*/React.createElement("span", null, "Qualify (25\u201340%)"), /*#__PURE__*/React.createElement("span", null, "Pursue (40\u201360%)"), /*#__PURE__*/React.createElement("span", null, "Must Win (60%+)"))), PWIN_FACTORS.map(section => /*#__PURE__*/React.createElement("div", {
+    key: section.section,
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 3,
+      height: 16,
+      background: ORANGE,
+      borderRadius: 2
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: NAVY,
+      textTransform: "uppercase",
+      letterSpacing: "0.05em"
+    }
+  }, section.section)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: "1px solid #e8eaed",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#f5f6fa"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 14px",
+      textAlign: "left",
+      fontWeight: 700,
+      color: "#666",
+      width: "38%"
+    }
+  }, "Factor"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 14px",
+      textAlign: "left",
+      fontWeight: 700,
+      color: "#666"
+    }
+  }, "Score (1\u20135)"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 14px",
+      textAlign: "center",
+      fontWeight: 700,
+      color: "#666",
+      width: "70px"
+    }
+  }, "Weight"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 14px",
+      textAlign: "center",
+      fontWeight: 700,
+      color: "#666",
+      width: "80px"
+    }
+  }, "Weighted"))), /*#__PURE__*/React.createElement("tbody", null, section.items.map((item, idx) => {
+    const sc = scores[item.id] || 0;
+    const weighted = sc > 0 ? Math.round(sc * item.weight * 20) : null;
+    return /*#__PURE__*/React.createElement("tr", {
+      key: item.id,
+      style: {
+        borderTop: idx > 0 ? "1px solid #eee" : undefined,
+        background: sc > 0 ? "transparent" : "#fafafa"
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "10px 14px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 600,
+        color: "#1a1a1a",
+        marginBottom: 2
+      }
+    }, item.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#888"
+      }
+    }, item.sub)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "8px 14px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5
+      }
+    }, [1, 2, 3, 4, 5].map(n => {
+      const c = SCORE_COLORS[n];
+      const active = sc === n;
+      return /*#__PURE__*/React.createElement("button", {
+        key: n,
+        onClick: () => setScore(item.id, n),
+        style: {
+          width: 32,
+          height: 32,
+          borderRadius: 6,
+          border: `1px solid ${active ? c.border : "#ddd"}`,
+          background: active ? c.bg : "#fff",
+          color: active ? c.text : "#888",
+          fontSize: 12,
+          fontWeight: active ? 700 : 400,
+          cursor: "pointer",
+          transition: "all 0.12s"
+        }
+      }, n);
+    }))), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "8px 14px",
+        textAlign: "center",
+        fontSize: 12,
+        color: "#888",
+        fontWeight: 600
+      }
+    }, Math.round(item.weight * 100), "%"), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: "8px 14px",
+        textAlign: "center"
+      }
+    }, weighted !== null ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: NAVY
+      }
+    }, weighted) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: "#ccc"
+      }
+    }, "\u2014")));
+  })))))), /*#__PURE__*/React.createElement(Sec, {
+    title: "Capture Notes / Rationale"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    value: data.pwin.notes || "",
+    onChange: e => u("notes", e.target.value),
+    placeholder: "Document rationale for scores, key intel gaps, actions needed to improve Pwin...",
+    rows: 4,
+    style: {
+      width: "100%",
+      padding: "8px 12px",
+      fontSize: 13,
+      borderRadius: 6,
+      border: "1px solid #d0d5dd",
+      background: "#fff",
+      color: "#1a1a1a",
+      fontFamily: "inherit",
+      resize: "vertical",
+      lineHeight: 1.5
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#f0f4f8",
+      borderRadius: 8,
+      padding: "12px 16px",
+      border: `1px solid ${NAVY}22`,
+      fontSize: 12,
+      color: "#555"
+    }
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: NAVY
+    }
+  }, "Scoring guide:"), " 1 = Poor/no evidence \xB7 2 = Weak/minimal \xB7 3 = Moderate/some evidence \xB7 4 = Strong/well-positioned \xB7 5 = Excellent/clear advantage. Pwin auto-adjusts for completeness \u2014 score all 8 factors for the most accurate estimate."));
+}
+
+// ── PURSUIT DETAIL VIEW ───────────────────────────────────────────
+// ── CAPTURE PHASES TAB ────────────────────────────────────────────
+const DG_PEOPLE = ["", "Leah Sanders", "Greg Beaulieu", "Ryan Bakazan", "Laura Magiera", "Cami Mercado", "Mike Ennis", "Ryan Lookabill", "Scott Washburn"];
+function CapturePhaseTab({ data, setData }) {
+  const cp = data.capturePhases || {};
+  const DEFAULT_P2 = [
+    { id:"p2a1", label:"Understand customer mission and priorities", status:"", assignee:"", notes:"" },
+    { id:"p2a2", label:"Identify pain points with current contract", status:"", assignee:"", notes:"" },
+    { id:"p2a3", label:"Identify upcoming initiatives or organizational changes", status:"", assignee:"", notes:"" },
+    { id:"p2a4", label:"Assess budget environment", status:"", assignee:"", notes:"" },
+    { id:"p2a5", label:"Identify key decision makers and influencers", status:"", assignee:"", notes:"" },
+    { id:"p2a6", label:"Conduct customer meetings", status:"", assignee:"", notes:"" },
+    { id:"p2a7", label:"Identify and influence likely acquisition approach", status:"", assignee:"", notes:"" }
+  ];
+  const DEFAULT_P3 = [
+    { id:"p3a1", label:"Identify likely bidders", status:"", assignee:"", notes:"" },
+    { id:"p3a2", label:"Assess incumbent strengths and weaknesses", status:"", assignee:"", notes:"" },
+    { id:"p3a3", label:"Assess relationships and past performance", status:"", assignee:"", notes:"" },
+    { id:"p3a4", label:"Estimate competitor pricing strategy", status:"", assignee:"", notes:"" },
+    { id:"p3a5", label:"Conduct Black Hat session", status:"", assignee:"", notes:"" }
+  ];
+  const DEFAULT_P4 = [
+    { id:"p4a1", label:"Identify key personnel requirements", status:"", assignee:"", notes:"" },
+    { id:"p4a2", label:"Assess incumbent staff retention opportunities", status:"", assignee:"", notes:"" },
+    { id:"p4a3", label:"Recruit critical personnel", status:"", assignee:"", notes:"" },
+    { id:"p4a4", label:"Evaluate teammates/JV partners", status:"", assignee:"", notes:"" },
+    { id:"p4a5", label:"Validate labor categories and salary assumptions", status:"", assignee:"", notes:"" },
+    { id:"p4a6", label:"Execute NDAs/teaming agreements", status:"", assignee:"", notes:"" }
+  ];
+  const p2 = cp.phase2 || {};
+  const p3 = cp.phase3 || {};
+  const p4 = cp.phase4 || {};
+  const p2activities = (p2.activities && p2.activities.length) ? p2.activities : DEFAULT_P2;
+  const p3activities = (p3.activities && p3.activities.length) ? p3.activities : DEFAULT_P3;
+  const p4activities = (p4.activities && p4.activities.length) ? p4.activities : DEFAULT_P4;
+  const upd = (phase, field, val) => setData(prev => ({
+    ...prev,
+    capturePhases: {
+      ...prev.capturePhases,
+      [phase]: { ...(prev.capturePhases || {})[phase], [field]: val }
+    }
+  }));
+  const updActivity = (phase, id, field, val) => setData(prev => {
+    const ph = (prev.capturePhases || {})[phase] || {};
+    return {
+      ...prev,
+      capturePhases: {
+        ...prev.capturePhases,
+        [phase]: {
+          ...ph,
+          activities: ph.activities.map(a => a.id === id ? { ...a, [field]: val } : a)
+        }
+      }
+    };
+  });
+  const updStakeholder = (i, field, val) => setData(prev => {
+    const rows = [...((prev.capturePhases?.phase2?.stakeholderMap) || [])];
+    rows[i] = { ...rows[i], [field]: val };
+    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases.phase2, stakeholderMap: rows } } };
+  });
+  const addStakeholder = () => setData(prev => {
+    const rows = [...((prev.capturePhases?.phase2?.stakeholderMap) || [])];
+    rows.push({ id: `sm${Date.now()}`, name: "", title: "", org: "", influence: "", relationship: "", notes: "" });
+    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases.phase2, stakeholderMap: rows } } };
+  });
+  const removeStakeholder = i => setData(prev => {
+    const rows = [...((prev.capturePhases?.phase2?.stakeholderMap) || [])].filter((_, j) => j !== i);
+    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases.phase2, stakeholderMap: rows } } };
+  });
+
+  const TAStyles = {
+    width: "100%", fontSize: 13, padding: "7px 10px", borderRadius: 6,
+    border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a",
+    resize: "vertical", minHeight: 64, fontFamily: "inherit", lineHeight: 1.5
+  };
+  const inputSt = {
+    width: "100%", fontSize: 13, padding: "7px 10px", borderRadius: 6,
+    border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a"
+  };
+  const INFLUENCE_OPTS = ["", "High", "Medium", "Low"];
+  const REL_OPTS = ["", "Strong", "Neutral", "Weak", "Unknown"];
+
+  function PhaseHeader({ number, title, objective, timeline }) {
+    return /*#__PURE__*/React.createElement("div", { style: { marginBottom: 20, padding: "16px 20px", background: NAVY, borderRadius: 10, color: "#fff" } },
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
+        /*#__PURE__*/React.createElement("div", { style: { background: ORANGE, color: "#fff", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, flexShrink: 0 } }, number),
+        /*#__PURE__*/React.createElement("div", null,
+          /*#__PURE__*/React.createElement("div", { style: { fontWeight: 700, fontSize: 16 } }, title),
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, opacity: 0.75, marginTop: 2 } }, timeline)
+        )
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { marginTop: 10, fontSize: 13, opacity: 0.9, background: "rgba(255,255,255,0.08)", borderRadius: 6, padding: "8px 12px" } },
+        /*#__PURE__*/React.createElement("span", { style: { fontWeight: 600 } }, "Objective: "),
+        objective
+      )
+    );
+  }
+
+  function ActivityTable({ activities, phase }) {
+    const done = activities.filter(a => a.status === "Complete").length;
+    const pct = activities.length ? Math.round((done / activities.length) * 100) : 0;
+    return /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } },
+        /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+          /*#__PURE__*/React.createElement("div", { style: { width: 3, height: 16, background: ORANGE, borderRadius: 2 } }),
+          /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: NAVY, textTransform: "uppercase", letterSpacing: "0.05em" } }, "Activities")
+        ),
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: "#888" } }, done, "/", activities.length, " complete")
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { height: 4, background: "#e8eaed", borderRadius: 4, marginBottom: 12, overflow: "hidden" } },
+        /*#__PURE__*/React.createElement("div", { style: { height: "100%", width: pct + "%", background: pct === 100 ? "#22c55e" : ORANGE, borderRadius: 4 } })
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
+        activities.map((a, idx) => {
+          const isChecked = a.status === "Complete";
+          const bg = idx % 2 === 0 ? "#fff" : "#fafafa";
+          return /*#__PURE__*/React.createElement("div", { key: a.id, style: { display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: bg, borderTop: idx > 0 ? "1px solid #f0f0f0" : "none" } },
+            /*#__PURE__*/React.createElement("div", {
+              onClick: () => updActivity(phase, a.id, "status", isChecked ? "" : "Complete"),
+              style: { width: 20, height: 20, borderRadius: 5, flexShrink: 0, cursor: "pointer", border: isChecked ? "none" : "2px solid #d0d5dd", background: isChecked ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center" }
+            }, isChecked && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 13, fontWeight: 700 } }, "✓")),
+            /*#__PURE__*/React.createElement("span", { style: { flex: 1, fontSize: 13, color: isChecked ? "#aaa" : "#1a1a1a", textDecoration: isChecked ? "line-through" : "none" } }, a.label),
+            /*#__PURE__*/React.createElement("select", { value: a.assignee, onChange: e => updActivity(phase, a.id, "assignee", e.target.value), style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", minWidth: 120 } },
+              DG_PEOPLE.map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Owner --"))
+            ),
+            /*#__PURE__*/React.createElement("input", { value: a.notes, onChange: e => updActivity(phase, a.id, "notes", e.target.value), placeholder: "Notes...", style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", width: 200 } })
+          );
+        })
+      )
+    );
+  }
+
+  function SectionLabel({ children }) {
+    return /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, marginTop: 20 } },
+      /*#__PURE__*/React.createElement("div", { style: { width: 3, height: 16, background: ORANGE, borderRadius: 2 } }),
+      /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: NAVY, textTransform: "uppercase", letterSpacing: "0.05em" } }, children)
+    );
+  }
+
+  // ── Phase Timeline Banner ──────────────────────────────────────────
+  function PhaseBanner() {
+    const today = new Date();
+    const rfp = data.meta && data.meta.rfpRelease ? new Date(data.meta.rfpRelease) : null;
+    const pop = data.meta && data.meta.popStart   ? new Date(data.meta.popStart)   : null;
+    const phases = [
+      { num:"1", label:"Opportunity ID",      sub:"Early pipeline" },
+      { num:"2", label:"Customer & Mission",  sub:"12+ mo out" },
+      { num:"3", label:"Competitive Intel",   sub:"9-12 mo out" },
+      { num:"4", label:"Staffing & Teaming",  sub:"6-9 mo out" },
+      { num:"5", label:"Proposal",            sub:"RFP to Award" }
+    ];
+    let activePhase = 2;
+    if (rfp) {
+      const moToRfp = (rfp - today) / (1000 * 60 * 60 * 24 * 30);
+      if (moToRfp <= 0)       activePhase = 5;
+      else if (moToRfp <= 6)  activePhase = 4;
+      else if (moToRfp <= 12) activePhase = 3;
+      else                    activePhase = 2;
+    }
+    const fmtDate = d => d ? d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" }) : null;
+    return /*#__PURE__*/React.createElement("div", { style:{ background:"#fff", border:"1px solid #e8eaed", borderRadius:12, padding:"20px 24px", marginBottom:24, boxShadow:"0 1px 4px rgba(0,0,0,0.06)" } },
+      /*#__PURE__*/React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 } },
+        /*#__PURE__*/React.createElement("div", null,
+          /*#__PURE__*/React.createElement("div", { style:{ fontSize:13, fontWeight:700, color:NAVY, textTransform:"uppercase", letterSpacing:"0.06em" } }, "Capture Phase Timeline"),
+          /*#__PURE__*/React.createElement("div", { style:{ fontSize:12, color:"#888", marginTop:3 } },
+            "Today: ", /*#__PURE__*/React.createElement("strong", null, fmtDate(today)),
+            rfp ? /*#__PURE__*/React.createElement("span", null, "  ·  RFP: ", /*#__PURE__*/React.createElement("strong", null, fmtDate(rfp)))
+                : /*#__PURE__*/React.createElement("span", { style:{ color:"#bbb" } }, "  ·  RFP date not set"),
+            pop ? /*#__PURE__*/React.createElement("span", null, "  ·  PoP Start: ", /*#__PURE__*/React.createElement("strong", null, fmtDate(pop)))
+                : /*#__PURE__*/React.createElement("span", { style:{ color:"#bbb" } }, "  ·  PoP start not set")
+          )
+        ),
+        !rfp && !pop && /*#__PURE__*/React.createElement("div", { style:{ fontSize:11, color:"#aaa", fontStyle:"italic", textAlign:"right" } }, "Set RFP Release & PoP Start in Overview tab to auto-position")
+      ),
+      /*#__PURE__*/React.createElement("div", { style:{ position:"relative" } },
+        /*#__PURE__*/React.createElement("div", { style:{ position:"absolute", top:21, left:"5%", right:"5%", height:3, background:"#e8eaed", borderRadius:2, zIndex:0 } }),
+        /*#__PURE__*/React.createElement("div", { style:{ position:"absolute", top:21, left:"5%", height:3, borderRadius:2, zIndex:1, background:"linear-gradient(to right, "+ORANGE+", "+NAVY+")", width:(Math.min(((activePhase-1)/(phases.length-1))*90,90))+"%"} }),
+        /*#__PURE__*/React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", position:"relative", zIndex:2 } },
+          phases.map((ph, i) => {
+            const phNum = parseInt(ph.num);
+            const isActive = phNum === activePhase;
+            const isDone   = phNum < activePhase;
+            const nodeColor = isActive ? ORANGE : isDone ? NAVY : "#d0d5dd";
+            return /*#__PURE__*/React.createElement("div", { key:ph.num, style:{ display:"flex", flexDirection:"column", alignItems:"center", width:(100/phases.length)+"%" } },
+              /*#__PURE__*/React.createElement("div", { style:{ width:42, height:42, borderRadius:"50%", background:isActive?ORANGE:isDone?NAVY:"#fff", border:"3px solid "+nodeColor, display:"flex", alignItems:"center", justifyContent:"center", color:(isActive||isDone)?"#fff":"#aaa", fontWeight:800, fontSize:16, boxShadow:isActive?("0 0 0 4px "+ORANGE+"33"):"none" } },
+                isDone ? "✓" : ph.num
+              ),
+              /*#__PURE__*/React.createElement("div", { style:{ marginTop:8, textAlign:"center" } },
+                /*#__PURE__*/React.createElement("div", { style:{ fontSize:12, fontWeight:isActive?700:600, color:isActive?ORANGE:isDone?NAVY:"#aaa", lineHeight:1.3 } }, ph.label),
+                /*#__PURE__*/React.createElement("div", { style:{ fontSize:10, color:"#aaa", marginTop:2 } }, ph.sub),
+                isActive && /*#__PURE__*/React.createElement("div", { style:{ marginTop:4, background:ORANGE, color:"#fff", fontSize:9, fontWeight:700, borderRadius:10, padding:"2px 7px", display:"inline-block", textTransform:"uppercase", letterSpacing:"0.04em" } }, "▶ Now")
+              )
+            );
+          })
+        )
+      )
+    );
+  }
+
+  return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement(PhaseBanner, null),
+    // ── Phase 2 ──
+    /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
+      /*#__PURE__*/React.createElement(PhaseHeader, { number: "2", title: "Customer & Mission Assessment", objective: "Understand the customer's mission and future needs.", timeline: "Ongoing — typically 12+ months out" }),
+      /*#__PURE__*/React.createElement(ActivityTable, { activities: p2activities, phase: "phase2" }),
+
+      // Stakeholder Map
+      /*#__PURE__*/React.createElement(SectionLabel, null, "Stakeholder Map / Key Decision Makers"),
+      /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginBottom: 8 } },
+        /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse" } },
+          /*#__PURE__*/React.createElement("thead", null,
+            /*#__PURE__*/React.createElement("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #e8eaed" } },
+              ["Name", "Title / Role", "Org / Office", "Influence", "Relationship", "Notes"].map(h =>
+                /*#__PURE__*/React.createElement("th", { key: h, style: { padding: "8px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.04em" } }, h)
+              ),
+              /*#__PURE__*/React.createElement("th", { style: { width: 36 } })
+            )
+          ),
+          /*#__PURE__*/React.createElement("tbody", null,
+            (p2.stakeholderMap || []).map((row, i) =>
+              /*#__PURE__*/React.createElement("tr", { key: row.id, style: { background: i % 2 === 0 ? "#fff" : "#fafafa", borderTop: i > 0 ? "1px solid #f0f0f0" : "none" } },
+                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.name, onChange: e => updStakeholder(i, "name", e.target.value), placeholder: "Full Name", style: { ...inputSt, fontSize: 12 } })),
+                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.title, onChange: e => updStakeholder(i, "title", e.target.value), placeholder: "e.g. COR, PM", style: { ...inputSt, fontSize: 12 } })),
+                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.org, onChange: e => updStakeholder(i, "org", e.target.value), placeholder: "e.g. USTC J6", style: { ...inputSt, fontSize: 12 } })),
+                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px", minWidth: 100 } },
+                  /*#__PURE__*/React.createElement("select", { value: row.influence, onChange: e => updStakeholder(i, "influence", e.target.value), style: { ...inputSt, fontSize: 12 } },
+                    INFLUENCE_OPTS.map(o => /*#__PURE__*/React.createElement("option", { key: o, value: o }, o || "— Level —"))
+                  )
+                ),
+                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px", minWidth: 110 } },
+                  /*#__PURE__*/React.createElement("select", { value: row.relationship, onChange: e => updStakeholder(i, "relationship", e.target.value), style: { ...inputSt, fontSize: 12 } },
+                    REL_OPTS.map(o => /*#__PURE__*/React.createElement("option", { key: o, value: o }, o || "— Strength —"))
+                  )
+                ),
+                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.notes, onChange: e => updStakeholder(i, "notes", e.target.value), placeholder: "Notes / context", style: { ...inputSt, fontSize: 12 } })),
+                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px", textAlign: "center" } },
+                  /*#__PURE__*/React.createElement("button", { onClick: () => removeStakeholder(i), style: { background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: 14, padding: 2 }, title: "Remove row" }, "✕")
+                )
+              )
+            )
+          )
+        )
+      ),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: addStakeholder,
+        style: { fontSize: 12, fontWeight: 700, color: ORANGE, background: "transparent", border: `1px dashed ${ORANGE}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer", marginBottom: 16 }
+      }, "+ Add Stakeholder"),
+
+      // Customer Questions
+      /*#__PURE__*/React.createElement(SectionLabel, null, "Customer Discovery Questions"),
+      /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        [
+          { field: "questionsWorking", label: "What's working?" },
+          { field: "questionsNotWorking", label: "What's not working?" },
+          { field: "questionsChange", label: "What would they change?" },
+          { field: "questionsLosingSleep", label: "What's keeping leadership awake at night?" }
+        ].map(({ field, label }) =>
+          /*#__PURE__*/React.createElement("div", { key: field },
+            /*#__PURE__*/React.createElement(Lbl, null, label),
+            /*#__PURE__*/React.createElement("textarea", { value: p2[field] || "", onChange: e => upd("phase2", field, e.target.value), style: TAStyles, rows: 3 })
+          )
+        )
+      ),
+
+      // Customer Profile Notes
+      /*#__PURE__*/React.createElement(SectionLabel, null, "Customer Profile Notes"),
+      /*#__PURE__*/React.createElement("textarea", { value: p2.customerProfileNotes || "", onChange: e => upd("phase2", "customerProfileNotes", e.target.value), style: { ...TAStyles, minHeight: 80 }, placeholder: "Capture overall customer profile summary, priorities, and context..." })
+    ),
+
+    // ── Phase 3 ──
+    /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
+      /*#__PURE__*/React.createElement(PhaseHeader, { number: "3", title: "Competitive Intelligence / Black Hat", objective: "Understand competitors and likely strategies.", timeline: "9–12 months out, ongoing" }),
+      /*#__PURE__*/React.createElement(ActivityTable, { activities: p3activities, phase: "phase3" }),
+
+      // SWOT
+      /*#__PURE__*/React.createElement(SectionLabel, null, "D&G SWOT Analysis"),
+      /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        [
+          { field: "swotStrengths", label: "💪 Strengths", color: "#e8f5e9", border: "#a5d6a7" },
+          { field: "swotWeaknesses", label: "⚠️ Weaknesses", color: "#fff3e0", border: "#ffcc80" },
+          { field: "swotOpportunities", label: "🎯 Opportunities", color: "#e3f2fd", border: "#90caf9" },
+          { field: "swotThreats", label: "🚨 Threats", color: "#fce4ec", border: "#f48fb1" }
+        ].map(({ field, label, color, border }) =>
+          /*#__PURE__*/React.createElement("div", { key: field, style: { background: color, border: `1px solid ${border}`, borderRadius: 8, padding: 12 } },
+            /*#__PURE__*/React.createElement(Lbl, null, label),
+            /*#__PURE__*/React.createElement("textarea", { value: p3[field] || "", onChange: e => upd("phase3", field, e.target.value), style: { ...TAStyles, background: "rgba(255,255,255,0.7)", minHeight: 80 }, placeholder: `Enter ${label.replace(/[^\w\s]/gi, "").trim().toLowerCase()}...` })
+          )
+        )
+      ),
+
+      // Competitor Matrix & Black Hat Notes
+      /*#__PURE__*/React.createElement(SectionLabel, null, "Competitor Matrix Notes"),
+      /*#__PURE__*/React.createElement("textarea", { value: p3.competitorMatrixNotes || "", onChange: e => upd("phase3", "competitorMatrixNotes", e.target.value), style: { ...TAStyles, minHeight: 80 }, placeholder: "Document likely bidders, their strengths/weaknesses, past performance, and pricing strategies..." }),
+      /*#__PURE__*/React.createElement(SectionLabel, null, "Black Hat Session Notes"),
+      /*#__PURE__*/React.createElement("textarea", { value: p3.blackHatNotes || "", onChange: e => upd("phase3", "blackHatNotes", e.target.value), style: { ...TAStyles, minHeight: 80 }, placeholder: "Record outcomes from Black Hat session — how competitors would evaluate and attack our proposal..." })
+    ),
+
+    // ── Phase 4 ──
+    /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
+      /*#__PURE__*/React.createElement(PhaseHeader, { number: "4", title: "Staffing & Teaming Strategy", objective: "Build a realistic staffing and partner approach.", timeline: "9–12 months out, ongoing" }),
+      /*#__PURE__*/React.createElement(ActivityTable, { activities: p4activities, phase: "phase4" }),
+
+      // Deliverable notes
+      /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 4 } },
+        [
+          { field: "staffingPlanNotes", label: "Staffing Plan Notes", placeholder: "Key personnel requirements, labor categories, salary assumptions..." },
+          { field: "teamingStrategyNotes", label: "Teaming Strategy Notes", placeholder: "Teammate/JV evaluation, NDA/TA status, workshare considerations..." },
+          { field: "candidatePipelineNotes", label: "Candidate Pipeline Notes", placeholder: "Active recruits, incumbent retention targets, LOI status..." }
+        ].map(({ field, label, placeholder }) =>
+          /*#__PURE__*/React.createElement("div", { key: field },
+            /*#__PURE__*/React.createElement(SectionLabel, null, label),
+            /*#__PURE__*/React.createElement("textarea", { value: p4[field] || "", onChange: e => upd("phase4", field, e.target.value), style: { ...TAStyles, minHeight: 100 }, placeholder })
+          )
+        )
+      )
+    )
+  );
+}
+
+const TABS = [{
+  id: "meta",
+  label: "Overview",
+  icon: "ti-home"
+}, {
+  id: "gate",
+  label: "Gate Review",
+  icon: "ti-shield-check"
+}, {
+  id: "checklist",
+  label: "Checklist",
+  icon: "ti-checklist"
+}, {
+  id: "capturePhases",
+  label: "Capture Phases",
+  icon: "ti-timeline"
+}, {
+  id: "capmatrix",
+  label: "Cap Matrix",
+  icon: "ti-table"
+}, {
+  id: "incumbent",
+  label: "Incumbent",
+  icon: "ti-building"
+}, {
+  id: "callplan",
+  label: "Call Plan",
+  icon: "ti-phone"
+}, {
+  id: "competition",
+  label: "Competition",
+  icon: "ti-sword"
+}, {
+  id: "teaming",
+  label: "Teaming",
+  icon: "ti-users"
+}, {
+  id: "pricing",
+  label: "Pricing / PTW",
+  icon: "ti-currency-dollar"
+}, {
+  id: "pwin",
+  label: "Pwin Scorecard",
+  icon: "ti-target"
+}, {
+  id: "solution",
+  label: "Solution",
+  icon: "ti-bulb"
+}, {
+  id: "actions",
+  label: "Action Items",
+  icon: "ti-checkbox"
+}];
+function PursuitView({
+  pursuit,
+  onSave,
+  onBack,
+  onArchive,
+  onRestore,
+  onDelete
+}) {
+  const [activeTab, setActiveTab] = useState("meta");
+  const [data, setData] = useState(pursuit);
+  const [saved, setSaved] = useState(false);
+  const handleSave = () => {
+    const updated = {
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    onSave(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+  const {
+    done,
+    total,
+    pct
+  } = pursuitProgress(data);
+  const opp = data.meta.opportunityName || "Untitled Pursuit";
+  const PAGES = {
+    meta: /*#__PURE__*/React.createElement(MetaTab, {
+      data: data,
+      setData: setData
+    }),
+    gate: /*#__PURE__*/React.createElement(GateTab, {
+      data: data,
+      setData: setData
+    }),
+    pwin: /*#__PURE__*/React.createElement(PwinTab, {
+      data: data,
+      setData: setData
+    }),
+    checklist: /*#__PURE__*/React.createElement(ChecklistTab, {
+      data: data,
+      setData: setData
+    }),
+    capturePhases: /*#__PURE__*/React.createElement(CapturePhaseTab, {
+      data: data,
+      setData: setData
+    }),
+    capmatrix: /*#__PURE__*/React.createElement(CapMatrixTab, {
+      data: data,
+      setData: setData
+    }),
+    incumbent: /*#__PURE__*/React.createElement(IncumbentTab, {
+      data: data,
+      setData: setData
+    }),
+    callplan: /*#__PURE__*/React.createElement(CallPlanTab, {
+      data: data,
+      setData: setData
+    }),
+    competition: /*#__PURE__*/React.createElement(CompetitionTab, {
+      data: data,
+      setData: setData
+    }),
+    teaming: /*#__PURE__*/React.createElement(TeamingTab, {
+      data: data,
+      setData: setData
+    }),
+    pricing: /*#__PURE__*/React.createElement(PricingTab, {
+      data: data,
+      setData: setData
+    }),
+    solution: /*#__PURE__*/React.createElement(SolutionTab, {
+      data: data,
+      setData: setData
+    }),
+    actions: /*#__PURE__*/React.createElement(ActionsTab, {
+      data: data,
+      setData: setData
+    })
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      background: "#f4f6f9",
+      minHeight: "100vh"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: NAVY,
+      position: "sticky",
+      top: 0,
+      zIndex: 100,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.4)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "10px 20px",
+      borderBottom: `3px solid ${ORANGE}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onBack,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      background: "transparent",
+      border: "1px solid #ffffff33",
+      color: "#ffffff99",
+      borderRadius: 6,
+      padding: "5px 10px",
+      fontSize: 12,
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-arrow-left",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "Pipeline"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      height: 24,
+      background: "#ffffff22"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: ORANGE,
+      borderRadius: 6,
+      width: 30,
+      height: 30,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: 900,
+      fontSize: 11,
+      color: "#fff"
+    }
+  }, "D&G"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#ffffff44",
+      textTransform: "uppercase",
+      letterSpacing: "0.1em"
+    }
+  }, "Capture Tracker"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#fff",
+      maxWidth: 340,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, opp))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 100,
+      height: 4,
+      background: "#ffffff22",
+      borderRadius: 3,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${pct}%`,
+      height: "100%",
+      background: ORANGE,
+      transition: "width 0.3s"
+    }
+  })), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#ffffff66"
+    }
+  }, pct, "%")), (_data$pwin4 => {
+    const {
+      pwin,
+      verdict,
+      color
+    } = calcPwin(((_data$pwin4 = data.pwin) === null || _data$pwin4 === void 0 ? void 0 : _data$pwin4.scores) || {});
+    return verdict ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 700,
+        padding: "3px 10px",
+        borderRadius: 8,
+        background: color + "33",
+        color: "#fff",
+        border: `1px solid ${color}55`
+      }
+    }, verdict, " \xB7 ", pwin, "%") : null;
+  })(), data.archived ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      onRestore(data.id);
+      onBack();
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "6px 12px",
+      fontSize: 12,
+      fontWeight: 700,
+      borderRadius: 6,
+      border: "2px solid #4caf50",
+      background: "transparent",
+      color: "#4caf50",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-refresh",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "Restore"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (window.confirm(`Permanently delete "${data.meta.opportunityName || "this pursuit"}"? This cannot be undone.`)) {
+        onDelete(data.id);
+        onBack();
+      }
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "6px 12px",
+      fontSize: 12,
+      fontWeight: 700,
+      borderRadius: 6,
+      border: "2px solid #f4b8b8",
+      background: "transparent",
+      color: "#ffaaaa",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-trash",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "Delete")) : /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (window.confirm(`Move "${data.meta.opportunityName || "this pursuit"}" to No-Bid archive?`)) {
+        handleSave();
+        onArchive(data.id);
+        onBack();
+      }
+    },
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "6px 12px",
+      fontSize: 12,
+      fontWeight: 700,
+      borderRadius: 6,
+      border: "2px solid #f4b8b8",
+      background: "transparent",
+      color: "#ffaaaa",
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: "ti ti-ban",
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), "No Bid"), /*#__PURE__*/React.createElement("button", {
+    onClick: handleSave,
+    style: {
+      padding: "6px 16px",
+      fontSize: 12,
+      fontWeight: 700,
+      borderRadius: 6,
+      border: `2px solid ${saved ? "#4caf50" : ORANGE}`,
+      background: saved ? "#4caf5022" : "transparent",
+      color: saved ? "#4caf50" : ORANGE,
+      cursor: "pointer",
+      transition: "all 0.2s"
+    }
+  }, saved ? "✓ Saved" : "Save"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      overflowX: "auto",
+      padding: "0 10px",
+      gap: 2
+    }
+  }, TABS.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    onClick: () => setActiveTab(t.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "9px 12px",
+      fontSize: 12,
+      fontWeight: activeTab === t.id ? 700 : 400,
+      background: "transparent",
+      border: "none",
+      borderBottom: activeTab === t.id ? `3px solid ${ORANGE}` : "3px solid transparent",
+      color: activeTab === t.id ? "#fff" : "#ffffff55",
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+      transition: "all 0.15s",
+      marginBottom: -1
+    }
+  }, /*#__PURE__*/React.createElement("i", {
+    className: `ti ${t.icon}`,
+    style: {
+      fontSize: 13
+    },
+    "aria-hidden": "true"
+  }), t.label)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 960,
+      margin: "0 auto",
+      padding: "24px 20px"
+    }
+  }, PAGES[activeTab]));
+}
+
+// ── ROOT APP ──────────────────────────────────────────────────────
+function App() {
+  const [pursuits, setPursuits] = useState([]);
+  const [activePursuitId, setActivePursuitId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const saved = lsGet(STORAGE_KEY);
+    if (saved && Array.isArray(saved)) setPursuits(saved);
+    setLoading(false);
+  }, []);
+  const persist = useCallback(list => {
+    setPursuits(list);
+    lsSet(STORAGE_KEY, list);
+  }, []);
+  const handleCreate = () => {
+    const id = "pursuit_" + Date.now();
+    const p = blankPursuit(id);
+    const updated = [p, ...pursuits];
+    persist(updated);
+    setActivePursuitId(id);
+  };
+  const handleSave = updatedPursuit => {
+    const updated = pursuits.map(p => p.id === updatedPursuit.id ? updatedPursuit : p);
+    persist(updated);
+  };
+  const handleDelete = id => {
+    persist(pursuits.filter(p => p.id !== id));
+    if (activePursuitId === id) setActivePursuitId(null);
+  };
+  const handleArchive = id => {
+    persist(pursuits.map(p => p.id === id ? {
+      ...p,
+      archived: true,
+      archivedAt: new Date().toISOString()
+    } : p));
+    if (activePursuitId === id) setActivePursuitId(null);
+  };
+  const handleRestore = id => {
+    persist(pursuits.map(p => p.id === id ? {
+      ...p,
+      archived: false,
+      archivedAt: null
+    } : p));
+  };
+  if (loading) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 60,
+      textAlign: "center",
+      color: "#888",
+      fontSize: 14
+    }
+  }, "Loading...");
+  const activePursuit = pursuits.find(p => p.id === activePursuitId);
+  if (activePursuit) {
+    return /*#__PURE__*/React.createElement(PursuitView, {
+      pursuit: activePursuit,
+      onSave: handleSave,
+      onBack: () => setActivePursuitId(null),
+      onArchive: handleArchive,
+      onRestore: handleRestore,
+      onDelete: handleDelete
+    });
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      background: "#f4f6f9",
+      minHeight: "100vh"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: NAVY,
+      padding: "12px 24px",
+      borderBottom: `3px solid ${ORANGE}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: ORANGE,
+      borderRadius: 6,
+      width: 32,
+      height: 32,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: 900,
+      fontSize: 12,
+      color: "#fff"
+    }
+  }, "D&G"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#fff"
+    }
+  }, "D&G Solutions \u2014 Capture Pipeline")), /*#__PURE__*/React.createElement(Dashboard, {
+    pursuits: pursuits,
+    onCreate: handleCreate,
+    onOpen: setActivePursuitId,
+    onDelete: handleDelete,
+    onArchive: handleArchive,
+    onRestore: handleRestore
+  }));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
+
+</script>
+</body>
+</html>
