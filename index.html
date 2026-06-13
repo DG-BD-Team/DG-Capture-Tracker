@@ -37,6 +37,17 @@ const STATUS_COLOR = {
   "": " "
 };
 const STORAGE_KEY = "dg_capture_pursuits_v1";
+const ROSTER_KEY = "dg_team_roster_v1";
+const DEFAULT_ROSTER = [
+  {name: "Leah Sanders", email: ""},
+  {name: "Greg Beaulieu", email: ""},
+  {name: "Ryan Bakazan", email: ""},
+  {name: "Laura Magiera", email: ""},
+  {name: "Cami Mercado", email: ""},
+  {name: "Mike Ennis", email: ""},
+  {name: "Ryan Lookabill", email: ""},
+  {name: "Scott Washburn", email: ""}
+];
 
 // ── localStorage helpers ──────────────────────────────────────────
 function lsGet(key) {
@@ -463,10 +474,12 @@ function blankPursuit(id) {
       govStaff: [],
       evalBoard: [],
       incumbentStaff: [],
-      competitorRecruiting: []
+      competitorRecruiting: [],
+      engagementTimeline: []
     },
     competition: [],
     teaming: [],
+    staffingPlan: [],
     pricing: {
       incumbent: "",
       contractNumber: "",
@@ -550,6 +563,15 @@ function blankPursuit(id) {
         past_perf: 0,
         price: 0
       },
+      weights: {
+        cust_rel: 25,
+        req_shape: 10,
+        incumbent: 15,
+        teaming: 10,
+        tech_fit: 20,
+        past_perf: 10,
+        price: 10
+      },
       notes: "",
       lastUpdated: ""
     },
@@ -576,7 +598,7 @@ function blankPursuit(id) {
       howToWin: "",
       differentiator: "",
       proposalVolumes: "",
-      ddPastPerfs: ["", "", ""],
+      ddPastPerfs: [{customer:"",title:"",value:"",ftes:""},{customer:"",title:"",value:"",ftes:""},{customer:"",title:"",value:"",ftes:""}],
       executiveLead: "",
       captureManager: "",
       pricingLead: "",
@@ -680,6 +702,33 @@ function Grid({
     }
   }, children);
 }
+function PursuitBanner({ meta, onGoToOverview }) {
+  const CE = React.createElement;
+  const m = meta || {};
+  const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" }) : null;
+  const pop = (fmtDate(m.popStart) && fmtDate(m.popEnd)) ? fmtDate(m.popStart) + " – " + fmtDate(m.popEnd) : fmtDate(m.popStart) || fmtDate(m.popEnd) || null;
+  const fields = [
+    { label: "Customer", value: m.customer },
+    { label: "Contract Vehicle", value: m.contractVehicle },
+    { label: "Est. Value", value: m.estimatedValue },
+    { label: "PoP", value: pop },
+    { label: "Set-Aside", value: m.setAside },
+    { label: "NAICS", value: m.naics },
+    { label: "Role", value: m.role },
+    { label: "Capture Manager", value: m.captureManager },
+  ].filter(f => f.value);
+  if (!m.opportunityName && fields.length === 0) return null;
+  return CE("div", { style: { background: "#f0f4ff", border: "1px solid #c7d7fd", borderRadius: 10, padding: "10px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" } },
+    CE("span", { style: { fontWeight: 800, fontSize: 13, color: NAVY, whiteSpace: "nowrap" } }, m.opportunityName || "Untitled Pursuit"),
+    CE("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", flex: 1 } },
+      fields.map(f => CE("span", { key: f.label, style: { fontSize: 11, background: "#fff", border: "1px solid #d0d9f7", borderRadius: 5, padding: "3px 8px", color: "#374151" } },
+        CE("span", { style: { fontWeight: 700, color: "#6b7280", marginRight: 4 } }, f.label + ":"),
+        f.value
+      ))
+    ),
+    CE("button", { onClick: onGoToOverview, style: { marginLeft: "auto", fontSize: 11, padding: "4px 10px", borderRadius: 5, border: "1px solid #93aaed", background: "transparent", color: "#1a56db", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 600 } }, "Edit on Overview")
+  );
+}
 function Sec({
   title,
   children
@@ -764,11 +813,12 @@ function PBar({
 }
 function pursuitProgress(pursuit) {
   const all = Object.values(pursuit.checklist).flat();
-  const done = all.filter(i => i.status === "Complete").length;
+  const active = all.filter(i => i.status !== "N/A");
+  const done = active.filter(i => i.status === "Complete").length;
   return {
     done,
-    total: all.length,
-    pct: Math.round(done / all.length * 100)
+    total: active.length,
+    pct: active.length ? Math.round(done / active.length * 100) : 0
   };
 }
 const SA_COLORS = {
@@ -793,15 +843,100 @@ const SA_TEXT = {
 };
 
 // ── PIPELINE DASHBOARD ────────────────────────────────────────────
+function TeamSettingsModal({ roster, onSave, onClose }) {
+  const normalize = r => typeof r === "string" ? {name: r, email: ""} : r;
+  const [list, setList] = React.useState(roster.map(normalize));
+  const [newName, setNewName] = React.useState("");
+  const [newEmail, setNewEmail] = React.useState("");
+  const add = () => {
+    const n = newName.trim();
+    if (n && !list.find(r => r.name === n)) {
+      setList([...list, {name: n, email: newEmail.trim()}]);
+      setNewName(""); setNewEmail("");
+    }
+  };
+  const remove = i => setList(list.filter((_, j) => j !== i));
+  const setEmail = (i, v) => setList(list.map((r, j) => j === i ? {...r, email: v} : r));
+  const inputS = (extra) => ({fontSize: 12, padding: "4px 8px", borderRadius: 5, border: "1px solid #d0d5dd", color: "#1a1a1a", background: "#fff", ...extra});
+  return /*#__PURE__*/React.createElement("div", {
+    style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { background: "#fff", borderRadius: 12, padding: "24px 28px", width: 500, maxWidth: "95vw", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }
+  }, /*#__PURE__*/React.createElement("h2", { style: { margin: 0, fontSize: 16, fontWeight: 700, color: NAVY } }, "Team Roster"),
+  /*#__PURE__*/React.createElement("button", { onClick: onClose, style: { background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#aaa", lineHeight: 1 } }, "×")),
+  /*#__PURE__*/React.createElement("p", { style: { fontSize: 12, color: "#888", marginBottom: 12, marginTop: 0 } }, "Names populate all assignee dropdowns. Email addresses enable one-click task notifications."),
+  /*#__PURE__*/React.createElement("div", {
+    style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginBottom: 14, maxHeight: 320, overflowY: "auto" }
+  }, /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 } },
+    /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", { style: { background: "#f5f6fa" } },
+      /*#__PURE__*/React.createElement("th", { style: { padding: "7px 12px", textAlign: "left", fontWeight: 700, color: "#666" } }, "Name"),
+      /*#__PURE__*/React.createElement("th", { style: { padding: "7px 12px", textAlign: "left", fontWeight: 700, color: "#666" } }, "Email"),
+      /*#__PURE__*/React.createElement("th", { style: { width: 32 } }))),
+    /*#__PURE__*/React.createElement("tbody", null,
+      list.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", { colSpan: 3, style: { padding: "16px", textAlign: "center", color: "#aaa" } }, "No team members yet")),
+      list.map((person, i) => /*#__PURE__*/React.createElement("tr", {
+        key: person.name + i,
+        style: { borderTop: i > 0 ? "1px solid #f0f0f0" : "none", background: i % 2 === 0 ? "#fff" : "#fafafa" }
+      },
+        /*#__PURE__*/React.createElement("td", { style: { padding: "7px 12px", fontWeight: 600, color: "#1a1a1a", whiteSpace: "nowrap" } }, person.name),
+        /*#__PURE__*/React.createElement("td", { style: { padding: "5px 8px" } },
+          /*#__PURE__*/React.createElement("input", {
+            type: "email",
+            value: person.email || "",
+            onChange: e => setEmail(i, e.target.value),
+            placeholder: "name@example.com",
+            style: inputS({width: "100%"})
+          })),
+        /*#__PURE__*/React.createElement("td", { style: { padding: "5px 8px", textAlign: "center" } },
+          /*#__PURE__*/React.createElement("button", { onClick: () => remove(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, lineHeight: 1 } }, "×"))))))),
+  /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 8, marginBottom: 20, alignItems: "flex-end" } },
+    /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "#888", marginBottom: 3 } }, "Name"),
+      /*#__PURE__*/React.createElement("input", {
+        value: newName,
+        onChange: e => setNewName(e.target.value),
+        onKeyDown: e => e.key === "Enter" && add(),
+        placeholder: "Full name...",
+        style: inputS({width: "100%", padding: "7px 10px"})
+      })),
+    /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "#888", marginBottom: 3 } }, "Email (optional)"),
+      /*#__PURE__*/React.createElement("input", {
+        type: "email",
+        value: newEmail,
+        onChange: e => setNewEmail(e.target.value),
+        onKeyDown: e => e.key === "Enter" && add(),
+        placeholder: "name@example.com",
+        style: inputS({width: "100%", padding: "7px 10px"})
+      })),
+    /*#__PURE__*/React.createElement("button", {
+      onClick: add,
+      disabled: !newName.trim(),
+      style: { padding: "7px 16px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "none", background: newName.trim() ? NAVY : "#ccc", color: "#fff", cursor: newName.trim() ? "pointer" : "not-allowed", whiteSpace: "nowrap" }
+    }, "Add")),
+  /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 8 } },
+    /*#__PURE__*/React.createElement("button", { onClick: onClose, style: { padding: "8px 18px", fontSize: 12, borderRadius: 6, border: "1px solid #ddd", background: "transparent", color: "#888", cursor: "pointer" } }, "Cancel"),
+    /*#__PURE__*/React.createElement("button", {
+      onClick: () => { onSave(list); onClose(); },
+      style: { padding: "8px 18px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "none", background: NAVY, color: "#fff", cursor: "pointer" }
+    }, "Save Roster"))));
+}
+
 function Dashboard({
   pursuits,
   onCreate,
   onOpen,
   onDelete,
   onArchive,
-  onRestore
+  onRestore,
+  onExport,
+  onImportFile,
+  onManageRoster
 }) {
   const [showArchived, setShowArchived] = useState(false);
+  const importRef = useRef(null);
   const active = pursuits.filter(p => !p.archived);
   const archived = pursuits.filter(p => p.archived);
   const totalValue = active.reduce((sum, p) => {
@@ -838,7 +973,29 @@ function Dashboard({
       color: NAVY,
       margin: 0
     }
-  }, "Capture Pipeline")), /*#__PURE__*/React.createElement("button", {
+  }, "Capture Pipeline")), /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", alignItems: "center", gap: 8 }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "file",
+    accept: ".json",
+    ref: importRef,
+    onChange: onImportFile,
+    style: { display: "none" }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: onExport,
+    title: "Export backup (JSON)",
+    style: { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", color: "#555", border: "1px solid #d0d5dd", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-download", style: { fontSize: 15 }, "aria-hidden": "true" }), "Export"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => importRef.current && importRef.current.click(),
+    title: "Import from backup",
+    style: { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", color: "#555", border: "1px solid #d0d5dd", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-upload", style: { fontSize: 15 }, "aria-hidden": "true" }), "Import"), /*#__PURE__*/React.createElement("button", {
+    onClick: onManageRoster,
+    title: "Manage team roster",
+    style: { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "transparent", color: "#555", border: "1px solid #d0d5dd", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-users", style: { fontSize: 15 }, "aria-hidden": "true" }), "Team"), /*#__PURE__*/React.createElement("div", {
+    style: { width: 1, height: 24, background: "#e0e0e0", margin: "0 2px" }
+  }), /*#__PURE__*/React.createElement("button", {
     onClick: onCreate,
     style: {
       display: "flex",
@@ -855,11 +1012,9 @@ function Dashboard({
     }
   }, /*#__PURE__*/React.createElement("i", {
     className: "ti ti-plus",
-    style: {
-      fontSize: 16
-    },
+    style: { fontSize: 16 },
     "aria-hidden": "true"
-  }), "New Pursuit")), /*#__PURE__*/React.createElement("div", {
+  }), "New Pursuit"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(4,1fr)",
@@ -1037,6 +1192,7 @@ function PursuitCard({
     year: "numeric"
   });
   const pwinScores = ((_p$pwin = p.pwin) === null || _p$pwin === void 0 ? void 0 : _p$pwin.scores) || {};
+  const pwinWeights = (p.pwin || {}).weights;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: isArchived ? "#fafafa" : "#fff",
@@ -1098,6 +1254,7 @@ function PursuitCard({
     }
   }, p.meta.role), /*#__PURE__*/React.createElement(PwinBadge, {
     scores: pwinScores,
+    weights: pwinWeights,
     compact: true
   })), /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1321,12 +1478,25 @@ function MetaTab({
     }
   }));
   const m = data.meta;
+  const partners = (m.teamingPartners && m.teamingPartners.length > 0)
+    ? m.teamingPartners
+    : m.teamingPartner ? [{name: m.teamingPartner, nda: !!m.ndaExecuted, ta: !!m.taExecuted}] : [];
+  const rivals = (m.competitors && m.competitors.length > 0)
+    ? m.competitors
+    : m.competition ? [{name: m.competition}] : [];
+  const updPartner = (i, field, val) => { const arr = [...partners]; arr[i] = {...arr[i], [field]: val}; u("teamingPartners", arr); };
+  const addPartner = () => u("teamingPartners", [...partners, {name: "", nda: false, ta: false}]);
+  const removePartner = i => u("teamingPartners", partners.filter((_, j) => j !== i));
+  const updRival = (i, val) => { const arr = [...rivals]; arr[i] = {...arr[i], name: val}; u("competitors", arr); };
+  const addRival = () => u("competitors", [...rivals, {name: ""}]);
+  const removeRival = i => u("competitors", rivals.filter((_, j) => j !== i));
+  const toggleStyle = (on) => ({ width: 28, height: 28, borderRadius: 6, border: on ? "none" : "2px solid #d0d5dd", background: on ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: on ? "0 0 0 3px " + ORANGE + "33" : "none" });
   const {
     composite,
     pwin,
     verdict,
     color
-  } = calcPwin(((_data$pwin = data.pwin) === null || _data$pwin === void 0 ? void 0 : _data$pwin.scores) || {});
+  } = calcPwin(((_data$pwin = data.pwin) === null || _data$pwin === void 0 ? void 0 : _data$pwin.scores) || {}, (data.pwin || {}).weights);
   const scored = Object.values(((_data$pwin2 = data.pwin) === null || _data$pwin2 === void 0 ? void 0 : _data$pwin2.scores) || {}).filter(v => v > 0).length;
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
     title: "Opportunity Details"
@@ -1344,7 +1514,8 @@ function MetaTab({
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Contract Vehicle",
     value: m.contractVehicle,
-    onChange: v => u("contractVehicle", v)
+    onChange: v => u("contractVehicle", v),
+    options: ["", "GSA MAS", "OASIS+", "DLA JETS 2.0", "Agency Award", "Direct Award", "ALLIANT"]
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Set-Aside",
     value: m.setAside,
@@ -1384,23 +1555,70 @@ function MetaTab({
     label: "Incumbent Name",
     value: m.incumbentName || "",
     onChange: v => u("incumbentName", v)
-  }), /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 8 } },
-    /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
-      /*#__PURE__*/React.createElement(FInput, { label: "Teaming Partner", value: m.teamingPartner || "", onChange: v => u("teamingPartner", v) })
+  }), /*#__PURE__*/React.createElement("div", { style: { gridColumn: "1/-1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" } },
+    /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+        /*#__PURE__*/React.createElement(Lbl, null, "Teaming Partners"),
+        /*#__PURE__*/React.createElement("button", { onClick: addPartner, style: { padding: "3px 10px", fontSize: 11, fontWeight: 700, borderRadius: 5, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Partner")
+      ),
+      partners.length === 0
+        ? /*#__PURE__*/React.createElement("div", { style: { padding: "10px 12px", border: "1px dashed #e0e0e0", borderRadius: 7, fontSize: 12, color: "#aaa" } }, "No teaming partners yet")
+        : /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
+            /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 44px 44px 28px", gap: 4, padding: "6px 10px", background: "#f5f6fa", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em" } },
+              /*#__PURE__*/React.createElement("span", null, "Partner Name"),
+              /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "NDA"),
+              /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "TA"),
+              /*#__PURE__*/React.createElement("span", null)
+            ),
+            partners.map((p, i) => /*#__PURE__*/React.createElement("div", {
+              key: i,
+              style: { display: "grid", gridTemplateColumns: "1fr 44px 44px 28px", alignItems: "center", gap: 4, padding: "6px 10px", borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }
+            },
+              /*#__PURE__*/React.createElement("input", {
+                value: p.name || "",
+                onChange: e => updPartner(i, "name", e.target.value),
+                placeholder: "Partner name...",
+                style: { width: "100%", padding: "4px 7px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit" }
+              }),
+              ["nda", "ta"].map(field => {
+                const on = !!p[field];
+                return /*#__PURE__*/React.createElement("div", { key: field, onClick: () => updPartner(i, field, !on), style: { display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" } },
+                  /*#__PURE__*/React.createElement("div", { style: toggleStyle(on) },
+                    on && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1 } }, "✓")
+                  )
+                );
+              }),
+              /*#__PURE__*/React.createElement("button", { onClick: () => removePartner(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, lineHeight: 1, textAlign: "center" } }, "×")
+            ))
+          )
     ),
-    [["ndaExecuted","NDA"],["taExecuted","TA"]].map(([field, label]) => {
-      const isChecked = !!m[field];
-      return /*#__PURE__*/React.createElement("div", { key: field, onClick: () => u(field, !isChecked), style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, cursor: "pointer", paddingBottom: 4 } },
-        /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: isChecked ? ORANGE : "#888", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" } }, label),
-        /*#__PURE__*/React.createElement("div", { style: { width: 28, height: 28, borderRadius: 6, border: isChecked ? "none" : "2px solid #d0d5dd", background: isChecked ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: isChecked ? "0 0 0 3px " + ORANGE + "33" : "none" } },
-          isChecked && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 15, fontWeight: 700, lineHeight: 1 } }, "✓")
-        )
-      );
-    })
+    /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+        /*#__PURE__*/React.createElement(Lbl, null, "Competition"),
+        /*#__PURE__*/React.createElement("button", { onClick: addRival, style: { padding: "3px 10px", fontSize: 11, fontWeight: 700, borderRadius: 5, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Competitor")
+      ),
+      rivals.length === 0
+        ? /*#__PURE__*/React.createElement("div", { style: { padding: "10px 12px", border: "1px dashed #e0e0e0", borderRadius: 7, fontSize: 12, color: "#aaa" } }, "No competitors added yet")
+        : /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
+            rivals.map((r, i) => /*#__PURE__*/React.createElement("div", {
+              key: i,
+              style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderTop: i > 0 ? "1px solid #f0f0f0" : "none", background: i % 2 === 0 ? "#fff" : "#fafafa" }
+            },
+              /*#__PURE__*/React.createElement("input", {
+                value: r.name || "",
+                onChange: e => updRival(i, e.target.value),
+                placeholder: "Competitor name...",
+                style: { flex: 1, padding: "4px 7px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit" }
+              }),
+              /*#__PURE__*/React.createElement("button", { onClick: () => removeRival(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, lineHeight: 1 } }, "×")
+            ))
+          )
+    )
   ), /*#__PURE__*/React.createElement(FInput, {
-    label: "Competition",
-    value: m.competition || "",
-    onChange: v => u("competition", v)
+    label: "Our Role",
+    value: m.role || "Prime",
+    onChange: v => u("role", v),
+    options: ["Prime", "Sub", "JV Partner"]
   }))), /*#__PURE__*/React.createElement(Sec, {
     title: "Key Personnel"
   }, /*#__PURE__*/React.createElement(Grid, {
@@ -1469,7 +1687,7 @@ function MetaTab({
       color: "#aaa",
       marginTop: 4
     }
-  }, scored, "/8 factors scored")), /*#__PURE__*/React.createElement("div", {
+  }, scored, "/7 factors scored")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "#fff",
       border: "1px solid #e8eaed",
@@ -1549,6 +1767,37 @@ function MetaTab({
     }
   }))))));
 }
+function printGateReview(data) {
+  const g = data.gateReview || {};
+  const m = data.meta || {};
+  const pw = data.pwin || {};
+  const scores = pw.scores || {};
+  const { composite, pwin: pwinPct, verdict, color } = calcPwin(scores, pw.weights);
+  const allItems = PWIN_FACTORS.flatMap(s => s.items);
+  const fmtDate = s => s ? new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+  const row = (label, value) => value ? `<tr><td style="padding:4px 12px 4px 0;font-weight:600;color:#555;font-size:12px;white-space:nowrap;vertical-align:top">${label}</td><td style="padding:4px 0;font-size:13px;color:#1a1a1a">${value}</td></tr>` : "";
+  const section = (title, content) => `<div style="margin-bottom:22px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#DE7F26;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #DE7F26">${title}</div>${content}</div>`;
+  const SCORE_BG = {1:"#FCEBEB",2:"#FAEEDA",3:"#FFF8E1",4:"#EAF3DE",5:"#EAF3DE"};
+  const SCORE_TX = {1:"#791F1F",2:"#633806",3:"#412402",4:"#27500A",5:"#173404"};
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gate Review — ${m.opportunityName||"Untitled"}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;font-size:13px;line-height:1.5}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}.page{max-width:920px;margin:0 auto;padding:32px 40px}.hdr{background:#04122A;color:#fff;padding:20px 24px;border-radius:8px;margin-bottom:24px}.hdr-sub{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.5);margin-bottom:6px}.hdr-title{font-size:22px;font-weight:800}.hdr-meta{font-size:12px;color:rgba(255,255,255,0.65);margin-top:8px;display:flex;gap:20px;flex-wrap:wrap}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}.swot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}.swot-box{border-radius:6px;padding:10px 12px}.pwin-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}.pwin-card{border:1px solid #e8eaed;border-radius:8px;padding:12px 14px}.pwin-card-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#888;margin-bottom:4px}.pwin-card-val{font-size:22px;font-weight:800}table{border-collapse:collapse}.ft{width:100%;border:1px solid #e8eaed;border-radius:6px;overflow:hidden;font-size:12px}.ft th{background:#f5f6fa;padding:6px 10px;text-align:left;font-weight:700;color:#666}.ft td{padding:6px 10px;border-top:1px solid #eee}.sbadge{display:inline-block;width:22px;height:22px;border-radius:4px;text-align:center;line-height:22px;font-weight:700;font-size:12px}.footer{margin-top:32px;padding-top:14px;border-top:1px solid #e8eaed;font-size:11px;color:#aaa;display:flex;justify-content:space-between}</style></head><body><div class="page">
+<div class="hdr"><div class="hdr-sub">D&amp;G Solutions — Gate Review</div><div class="hdr-title">${m.opportunityName||"Untitled Pursuit"}</div><div class="hdr-meta">${m.customer?`<span>${m.customer}</span>`:""}${m.estimatedValue?`<span>${m.estimatedValue}</span>`:""}${m.setAside?`<span>${m.setAside}</span>`:""}${m.role?`<span>Role: ${m.role}</span>`:""}<span>Printed ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</span></div></div>
+${section("Contract Summary",`<table><tbody>${row("RFI Release",fmtDate(g.rfiDate))}${row("RFP Release",fmtDate(g.rfpDate))}${row("Award Date",fmtDate(g.awardDate))}${row("Competition Type",g.competitionType)}${row("Contract Type",g.contractType)}${row("Work Location",g.workLocation)}${row("Customer Relationship",g.customerRelationship)}${row("NAICS",m.naics)}${row("Contract Vehicle",m.contractVehicle)}</tbody></table>`)}
+${section("Scope & Work",`${g.scopeDescription?`<p style="font-size:13px;margin-bottom:10px">${g.scopeDescription}</p>`:""}${data.capMatrix&&data.capMatrix.taskAreas&&data.capMatrix.taskAreas.some(t=>t.description)?`<table class="ft" style="margin-bottom:8px"><thead><tr style="background:#04122A"><th style="color:#fff">Task Area</th><th style="color:#fff">Description</th><th style="color:#fff;text-align:center;width:110px">D&amp;G Experience</th></tr></thead><tbody>${data.capMatrix.taskAreas.map((t,i)=>`<tr style="background:${i%2===0?"#fff":"#fafafa"}"><td style="padding:6px 12px;font-weight:600">${t.label||""}</td><td style="padding:6px 12px">${t.description||""}</td><td style="text-align:center"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:${t.experience==="High"?"#e8f5e9":t.experience==="Medium"?"#fff8e1":t.experience==="Low"?"#ffebee":"#f5f5f5"};color:${t.experience==="High"?"#2e7d32":t.experience==="Medium"?"#e65100":t.experience==="Low"?"#c62828":"#888"}">${t.experience||"—"}</span></td></tr>`).join("")}</tbody></table>`:""}<table><tbody>${row("Key Personnel",g.keyPersonnel)}${row("Non-Key Personnel",g.nonKeyPersonnel)}</tbody></table>`)}
+${g.incumbentIntel?section("Incumbent Summary",`<p style="font-size:13px">${g.incumbentIntel}</p>`):""}
+${section("SWOT & Strategy",`<div class="swot">${g.strengths?`<div class="swot-box" style="background:#e8f5e9;border:1px solid #a5d6a7"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#2e7d32;margin-bottom:4px">Strengths</div><div style="font-size:12px">${g.strengths}</div></div>`:""}${g.weaknesses?`<div class="swot-box" style="background:#fff3e0;border:1px solid #ffcc80"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#e65100;margin-bottom:4px">Weaknesses</div><div style="font-size:12px">${g.weaknesses}</div></div>`:""}${g.opportunities?`<div class="swot-box" style="background:#e3f2fd;border:1px solid #90caf9"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#1565c0;margin-bottom:4px">Opportunities</div><div style="font-size:12px">${g.opportunities}</div></div>`:""}${g.threats?`<div class="swot-box" style="background:#fce4ec;border:1px solid #f48fb1"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#c62828;margin-bottom:4px">Threats</div><div style="font-size:12px">${g.threats}</div></div>`:""}</div><table style="margin-top:6px"><tbody>${row("How we win",g.howToWin)}${row("Key differentiator",g.differentiator)}</tbody></table>`)}
+${section("Teaming & Competition",`<table><tbody>${row("Teaming Partner",g.teamingPartner)}${row("Partner Workshare",g.teamingPct)}${row("Known Competition",g.competition)}</tbody></table>`)}
+${section("D&G Past Performances",(()=>{const pps=(g.ddPastPerfs||[]).map(p=>typeof p==="string"?{customer:"",title:p,value:"",ftes:""}:p).filter(p=>p.customer||p.title||p.value||p.ftes);if(!pps.length)return`<p style="color:#888;font-size:12px">None entered</p>`;return`<table class="ft" style="width:100%"><thead><tr><th style="width:24px">#</th><th>Customer</th><th>Contract Title</th><th style="text-align:center;width:90px">Value</th><th style="text-align:center;width:70px">FTEs</th></tr></thead><tbody>${pps.map((p,i)=>`<tr><td style="color:#DE7F26;font-weight:700">${i+1}</td><td>${p.customer||""}</td><td>${p.title||""}</td><td style="text-align:center">${p.value||""}</td><td style="text-align:center">${p.ftes||""}</td></tr>`).join("")}</tbody></table>`;})())}
+${section("Resources & Approval",`<table><tbody>${row("Executive Lead",g.executiveLead||m.deliveryLead)}${row("Capture Manager",g.captureManager||m.captureManager)}${row("Pricing Lead",g.pricingLead)}${row("Proposal Manager",g.proposalManager)}${row("Approval Authority",g.approvalAuthority||m.functionalSME)}${row("SME / Reviewer",g.smeReviewer)}</tbody></table>`)}
+${section("Pwin Scorecard",`<div class="pwin-row"><div class="pwin-card"><div class="pwin-card-label">Composite Score</div><div class="pwin-card-val" style="color:#04122A">${composite>0?composite+"/100":"—"}</div></div><div class="pwin-card"><div class="pwin-card-label">Pwin Estimate</div><div class="pwin-card-val" style="color:${color}">${pwinPct>0?pwinPct+"%":"—"}</div></div><div class="pwin-card"><div class="pwin-card-label">Recommendation</div><div style="margin-top:8px"><span style="display:inline-block;padding:4px 14px;border-radius:6px;font-size:14px;font-weight:800;background:${color}18;color:${color};border:1px solid ${color}44">${verdict||"Not scored"}</span></div></div></div><table class="ft"><thead><tr><th>Factor</th><th style="text-align:center;width:60px">Score</th><th style="text-align:center;width:80px">Weight</th></tr></thead><tbody>${allItems.map(item=>{const sc=scores[item.id]||0;return`<tr><td>${item.label}<div style="font-size:10px;color:#888">${item.sub}</div></td><td style="text-align:center">${sc>0?`<span class="sbadge" style="background:${SCORE_BG[sc]};color:${SCORE_TX[sc]}">${sc}</span>`:`<span style="color:#ccc">—</span>`}</td><td style="text-align:center;color:#888">${Math.round(item.weight*100)}%</td></tr>`;}).join("")}</tbody></table>${pw.notes?`<div style="margin-top:10px;padding:10px 12px;background:#f8f9fa;border-radius:6px;font-size:12px">${pw.notes}</div>`:""}`)}
+${g.nextSteps||g.liveUpdates?section("Next Steps & Updates",`${g.nextSteps?`<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Next Steps</div><p style="font-size:13px">${g.nextSteps}</p></div>`:""}${g.liveUpdates?`<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:4px">Live Updates</div><p style="font-size:13px">${g.liveUpdates}</p></div>`:""}`):""}
+${g.govwin||g.samgov||g.apfs||g.pws?section("Tracking Links",`<table><tbody>${row("GovWin",g.govwin?`<a href="${g.govwin}">${g.govwin}</a>`:"")}${row("SAM.gov",g.samgov?`<a href="${g.samgov}">${g.samgov}</a>`:"")}${row("APFS",g.apfs?`<a href="${g.apfs}">${g.apfs}</a>`:"")}${row("PWS",g.pws?`<a href="${g.pws}">${g.pws}</a>`:"")}</tbody></table>`):""}
+<div class="footer"><span>D&amp;G Solutions — Capture Pipeline</span><span>${m.opportunityName||"Untitled"} — Gate Review — ${new Date().toLocaleDateString("en-US",{month:"long",year:"numeric"})}</span></div>
+</div><script>window.onload=function(){window.print();}<\/script></body></html>`;
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
 function GateTab({
   data,
   setData
@@ -1560,9 +1809,32 @@ function GateTab({
       [k]: v
     }
   }));
+  const uMeta = (k, v) => setData(p => ({ ...p, meta: { ...p.meta, [k]: v } }));
   const g = data.gateReview,
     m = data.meta;
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
+  const gPartners = (g.teamingPartners && g.teamingPartners.length > 0)
+    ? g.teamingPartners
+    : g.teamingPartner ? [{name: g.teamingPartner, workshare: g.teamingPct || "", nda: false, ta: false}] : [];
+  const gRivals = (g.competitors && g.competitors.length > 0)
+    ? g.competitors
+    : g.competition ? [{name: g.competition}] : [];
+  const updGPartner = (i, field, val) => { const arr = [...gPartners]; arr[i] = {...arr[i], [field]: val}; u("teamingPartners", arr); };
+  const addGPartner = () => u("teamingPartners", [...gPartners, {name: "", workshare: "", nda: false, ta: false}]);
+  const removeGPartner = i => u("teamingPartners", gPartners.filter((_, j) => j !== i));
+  const updGRival = (i, val) => { const arr = [...gRivals]; arr[i] = {...arr[i], name: val}; u("competitors", arr); };
+  const addGRival = () => u("competitors", [...gRivals, {name: ""}]);
+  const removeGRival = i => u("competitors", gRivals.filter((_, j) => j !== i));
+  const toggleStyle = (on) => ({ width: 26, height: 26, borderRadius: 5, border: on ? "none" : "2px solid #d0d5dd", background: on ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: on ? "0 0 0 3px " + ORANGE + "33" : "none" });
+  const pastPerfs = (g.ddPastPerfs || []).map(pp => typeof pp === "string" ? {customer: "", title: pp, value: "", ftes: ""} : pp);
+  const updPP = (i, field, val) => { const arr = [...pastPerfs]; arr[i] = {...arr[i], [field]: val}; u("ddPastPerfs", arr); };
+  const addPP = () => u("ddPastPerfs", [...pastPerfs, {customer: "", title: "", value: "", ftes: ""}]);
+  const removePP = i => u("ddPastPerfs", pastPerfs.filter((_, j) => j !== i));
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", justifyContent: "flex-end", marginBottom: 14 }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => printGateReview(data),
+    style: { display: "flex", alignItems: "center", gap: 7, padding: "8px 18px", background: NAVY, color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer" }
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-printer", style: { fontSize: 14 }, "aria-hidden": "true" }), "Print Gate Review")), /*#__PURE__*/React.createElement(Sec, {
     title: "Contract Summary"
   }, /*#__PURE__*/React.createElement(Grid, {
     cols: 3
@@ -1679,21 +1951,58 @@ function GateTab({
     type: "textarea"
   }))), /*#__PURE__*/React.createElement(Sec, {
     title: "Teaming & Competition"
-  }, /*#__PURE__*/React.createElement(Grid, {
-    cols: 3
-  }, /*#__PURE__*/React.createElement(FInput, {
-    label: "Teaming Partner",
-    value: g.teamingPartner,
-    onChange: v => u("teamingPartner", v)
-  }), /*#__PURE__*/React.createElement(FInput, {
-    label: "Partner Workshare %",
-    value: g.teamingPct,
-    onChange: v => u("teamingPct", v)
-  }), /*#__PURE__*/React.createElement(FInput, {
-    label: "Known Competition",
-    value: g.competition,
-    onChange: v => u("competition", v)
-  }))), /*#__PURE__*/React.createElement(Sec, {
+  }, /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" } },
+    /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+        /*#__PURE__*/React.createElement(Lbl, null, "Teaming Partners"),
+        /*#__PURE__*/React.createElement("button", { onClick: addGPartner, style: { padding: "3px 10px", fontSize: 11, fontWeight: 700, borderRadius: 5, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Partner")
+      ),
+      gPartners.length === 0
+        ? /*#__PURE__*/React.createElement("div", { style: { padding: "10px 12px", border: "1px dashed #e0e0e0", borderRadius: 7, fontSize: 12, color: "#aaa" } }, "No teaming partners yet")
+        : /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
+            /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 70px 44px 44px 28px", gap: 4, padding: "6px 10px", background: "#f5f6fa", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em" } },
+              /*#__PURE__*/React.createElement("span", null, "Partner Name"),
+              /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "Share %"),
+              /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "NDA"),
+              /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "TA"),
+              /*#__PURE__*/React.createElement("span", null)
+            ),
+            gPartners.map((p, i) => /*#__PURE__*/React.createElement("div", {
+              key: i,
+              style: { display: "grid", gridTemplateColumns: "1fr 70px 44px 44px 28px", alignItems: "center", gap: 4, padding: "6px 10px", borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }
+            },
+              /*#__PURE__*/React.createElement("input", { value: p.name || "", onChange: e => updGPartner(i, "name", e.target.value), placeholder: "Partner name...", style: { width: "100%", padding: "4px 7px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit" } }),
+              /*#__PURE__*/React.createElement("input", { value: p.workshare || "", onChange: e => updGPartner(i, "workshare", e.target.value), placeholder: "e.g. 30%", style: { width: "100%", padding: "4px 7px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", textAlign: "center" } }),
+              ["nda", "ta"].map(field => {
+                const on = !!p[field];
+                return /*#__PURE__*/React.createElement("div", { key: field, onClick: () => updGPartner(i, field, !on), style: { display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" } },
+                  /*#__PURE__*/React.createElement("div", { style: toggleStyle(on) },
+                    on && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 13, fontWeight: 700, lineHeight: 1 } }, "✓")
+                  )
+                );
+              }),
+              /*#__PURE__*/React.createElement("button", { onClick: () => removeGPartner(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, lineHeight: 1, textAlign: "center" } }, "×")
+            ))
+          )
+    ),
+    /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 } },
+        /*#__PURE__*/React.createElement(Lbl, null, "Competition"),
+        /*#__PURE__*/React.createElement("button", { onClick: addGRival, style: { padding: "3px 10px", fontSize: 11, fontWeight: 700, borderRadius: 5, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Competitor")
+      ),
+      gRivals.length === 0
+        ? /*#__PURE__*/React.createElement("div", { style: { padding: "10px 12px", border: "1px dashed #e0e0e0", borderRadius: 7, fontSize: 12, color: "#aaa" } }, "No competitors added yet")
+        : /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
+            gRivals.map((r, i) => /*#__PURE__*/React.createElement("div", {
+              key: i,
+              style: { display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderTop: i > 0 ? "1px solid #f0f0f0" : "none", background: i % 2 === 0 ? "#fff" : "#fafafa" }
+            },
+              /*#__PURE__*/React.createElement("input", { value: r.name || "", onChange: e => updGRival(i, e.target.value), placeholder: "Competitor name...", style: { flex: 1, padding: "4px 7px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit" } }),
+              /*#__PURE__*/React.createElement("button", { onClick: () => removeGRival(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, lineHeight: 1 } }, "×")
+            ))
+          )
+    )
+  )), /*#__PURE__*/React.createElement(Sec, {
     title: "Resources & Approval"
   }, /*#__PURE__*/React.createElement(Grid, {
     cols: 3
@@ -1703,8 +2012,8 @@ function GateTab({
     onChange: v => u("executiveLead", v)
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Capture Manager",
-    value: g.captureManager || m.captureManager,
-    onChange: v => u("captureManager", v)
+    value: m.captureManager,
+    onChange: v => uMeta("captureManager", v)
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Pricing Lead",
     value: g.pricingLead,
@@ -1723,39 +2032,33 @@ function GateTab({
     onChange: v => u("smeReviewer", v)
   }))), /*#__PURE__*/React.createElement(Sec, {
     title: "D&G Past Performances"
-  }, g.ddPastPerfs.map((pp, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 8,
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "#888",
-      minWidth: 20,
-      fontWeight: 700
-    }
-  }, i + 1, "."), /*#__PURE__*/React.createElement("input", {
-    value: pp,
-    onChange: e => {
-      const a = [...g.ddPastPerfs];
-      a[i] = e.target.value;
-      u("ddPastPerfs", a);
+  }, /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginBottom: 10 } },
+    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "24px 160px 1fr 100px 80px 28px", gap: 6, padding: "7px 12px", background: "#f5f6fa", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em" } },
+      /*#__PURE__*/React.createElement("span", null, "#"),
+      /*#__PURE__*/React.createElement("span", null, "Customer"),
+      /*#__PURE__*/React.createElement("span", null, "Contract Title"),
+      /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "Value"),
+      /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "FTEs"),
+      /*#__PURE__*/React.createElement("span", null)
+    ),
+    pastPerfs.map((pp, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: { display: "grid", gridTemplateColumns: "24px 160px 1fr 100px 80px 28px", alignItems: "center", gap: 6, padding: "7px 12px", borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }
     },
-    placeholder: "Customer, Title, Value",
-    style: {
-      flex: 1,
-      padding: "7px 10px",
-      fontSize: 13,
-      borderRadius: 6,
-      border: "1px solid #d0d5dd",
-      background: "#fff",
-      color: "#1a1a1a"
-    }
-  })))), /*#__PURE__*/React.createElement(Sec, {
+      /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: "#aaa", fontWeight: 700 } }, i + 1),
+      ...[["customer","Customer..."],["title","Contract title..."],["value","$0M"],["ftes","0"]].map(([field, ph]) =>
+        /*#__PURE__*/React.createElement("input", {
+          key: field,
+          value: pp[field] || "",
+          onChange: e => updPP(i, field, e.target.value),
+          placeholder: ph,
+          style: { width: "100%", padding: "5px 8px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit" }
+        })
+      ),
+      /*#__PURE__*/React.createElement("button", { onClick: () => removePP(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, lineHeight: 1, textAlign: "center" } }, "×")
+    )),
+    pastPerfs.length === 0 && /*#__PURE__*/React.createElement("div", { style: { padding: "16px", textAlign: "center", color: "#aaa", fontSize: 12 } }, "No past performances added yet")
+  ), /*#__PURE__*/React.createElement("button", { onClick: addPP, style: { padding: "4px 12px", fontSize: 11, fontWeight: 700, borderRadius: 5, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Past Performance")), /*#__PURE__*/React.createElement(Sec, {
     title: "Tracking & Links"
   }, /*#__PURE__*/React.createElement(Grid, {
     cols: 2
@@ -1763,10 +2066,6 @@ function GateTab({
     label: "GovWin Link",
     value: g.govwin,
     onChange: v => u("govwin", v)
-  }), /*#__PURE__*/React.createElement(FInput, {
-    label: "GovTribe Link",
-    value: g.govtribe,
-    onChange: v => u("govtribe", v)
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "SAM.gov Link",
     value: g.samgov,
@@ -2573,7 +2872,8 @@ function IncumbentTab({
 }
 function CallPlanTab({
   data,
-  setData
+  setData,
+  roster
 }) {
   const sections = [{
     key: "govStaff",
@@ -2630,7 +2930,123 @@ function CallPlanTab({
     background: "#fff",
     color: "#1a1a1a"
   };
-  return /*#__PURE__*/React.createElement("div", null, sections.map(({
+  const engagements = data.callPlan.engagementTimeline || [];
+  const addEngagement = () => setData(p => ({
+    ...p,
+    callPlan: { ...p.callPlan, engagementTimeline: [...(p.callPlan.engagementTimeline || []), { id: Date.now(), contact: "", org: "", type: "Meeting", targetDate: "", purpose: "", status: "Planned", owner: "", notes: "" }] }
+  }));
+  const updEng = (i, field, val) => setData(p => {
+    const a = [...(p.callPlan.engagementTimeline || [])];
+    a[i] = { ...a[i], [field]: val };
+    return { ...p, callPlan: { ...p.callPlan, engagementTimeline: a } };
+  });
+  const delEng = i => setData(p => ({ ...p, callPlan: { ...p.callPlan, engagementTimeline: (p.callPlan.engagementTimeline || []).filter((_, j) => j !== i) } }));
+  const ENG_STATUS = {
+    "Planned":   { bg: "#e3f2fd", border: "#90caf9", text: "#1565c0", dot: "#42a5f5" },
+    "Scheduled": { bg: "#fff8e1", border: "#ffcc02", text: "#e65100", dot: ORANGE },
+    "Completed": { bg: "#e8f5e9", border: "#a5d6a7", text: "#2e7d32", dot: "#4caf50" },
+    "Missed":    { bg: "#ffebee", border: "#ef9a9a", text: "#c62828", dot: "#f44336" }
+  };
+  const ENG_TYPES = ["Meeting", "Phone Call", "Capability Brief", "Site Visit", "Industry Day", "Conference", "Draft RFP Review", "Other"];
+  const sorted = [...engagements].map((e, i) => ({ ...e, _i: i })).sort((a, b) => {
+    if (!a.targetDate && !b.targetDate) return 0;
+    if (!a.targetDate) return 1;
+    if (!b.targetDate) return -1;
+    return new Date(a.targetDate) - new Date(b.targetDate);
+  });
+  const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "No date set";
+  const today = new Date();
+  const phase = d => {
+    if (!d) return "Unscheduled";
+    const diff = (new Date(d) - today) / (1000 * 60 * 60 * 24);
+    if (diff < 0) return "Past";
+    if (diff <= 90) return "Near-Term (< 3 mo)";
+    if (diff <= 180) return "Mid-Term (3–6 mo)";
+    return "Long-Term (6+ mo)";
+  };
+  const statCounts = { Planned: 0, Scheduled: 0, Completed: 0, Missed: 0 };
+  engagements.forEach(e => { if (statCounts[e.status] !== undefined) statCounts[e.status]++; });
+  const inputS = (extra) => ({ fontSize: 12, padding: "5px 8px", borderRadius: 5, border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a", fontFamily: "inherit", ...extra });
+  return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement(Sec, { title: "Engagement Strategy Timeline" },
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" } },
+        Object.entries(statCounts).map(([status, count]) => {
+          const c = ENG_STATUS[status];
+          return /*#__PURE__*/React.createElement("div", { key: status, style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, border: "1px solid " + c.border, background: c.bg } },
+            /*#__PURE__*/React.createElement("div", { style: { width: 10, height: 10, borderRadius: "50%", background: c.dot } }),
+            /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: c.text } }, count),
+            /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: c.text } }, status)
+          );
+        })
+      ),
+      sorted.length === 0
+        ? /*#__PURE__*/React.createElement("div", { style: { padding: "32px", textAlign: "center", border: "1px dashed #e0e0e0", borderRadius: 10, color: "#aaa", fontSize: 13 } },
+            "No engagements planned yet — click \"+ Add Engagement\" to build your customer outreach strategy")
+        : /*#__PURE__*/React.createElement("div", { style: { position: "relative", paddingLeft: 32 } },
+            /*#__PURE__*/React.createElement("div", { style: { position: "absolute", left: 11, top: 0, bottom: 0, width: 2, background: "#e0e0e0", borderRadius: 1 } }),
+            sorted.map((eng, si) => {
+              const c = ENG_STATUS[eng.status] || ENG_STATUS["Planned"];
+              const showPhaseLabel = si === 0 || phase(eng.targetDate) !== phase(sorted[si - 1].targetDate);
+              return /*#__PURE__*/React.createElement("div", { key: eng._i },
+                showPhaseLabel && /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 12, marginTop: si > 0 ? 20 : 0 } },
+                  /*#__PURE__*/React.createElement("div", { style: { position: "absolute", left: 0, width: 24, textAlign: "center" } }),
+                  /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "#aaa" } }, phase(eng.targetDate))
+                ),
+                /*#__PURE__*/React.createElement("div", { style: { position: "relative", marginBottom: 14 } },
+                  /*#__PURE__*/React.createElement("div", { style: { position: "absolute", left: -26, top: 16, width: 14, height: 14, borderRadius: "50%", background: c.dot, border: "2px solid #fff", boxShadow: "0 0 0 2px " + c.dot } }),
+                  /*#__PURE__*/React.createElement("div", { style: { background: "#fff", border: "1px solid " + c.border, borderRadius: 10, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" } },
+                    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 140px 130px 110px 28px", gap: 8, alignItems: "end", marginBottom: 10 } },
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Contact"),
+                        /*#__PURE__*/React.createElement("input", { value: eng.contact || "", onChange: e => updEng(eng._i, "contact", e.target.value), placeholder: "Name...", style: inputS({ width: "100%" }) })
+                      ),
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Organization"),
+                        /*#__PURE__*/React.createElement("input", { value: eng.org || "", onChange: e => updEng(eng._i, "org", e.target.value), placeholder: "Agency / Org...", style: inputS({ width: "100%" }) })
+                      ),
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Type"),
+                        /*#__PURE__*/React.createElement("select", { value: eng.type || "Meeting", onChange: e => updEng(eng._i, "type", e.target.value), style: inputS({ width: "100%" }) },
+                          ENG_TYPES.map(t => /*#__PURE__*/React.createElement("option", { key: t, value: t }, t))
+                        )
+                      ),
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Target Date"),
+                        /*#__PURE__*/React.createElement("input", { type: "date", value: eng.targetDate || "", onChange: e => updEng(eng._i, "targetDate", e.target.value), style: inputS({ width: "100%" }) })
+                      ),
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Status"),
+                        /*#__PURE__*/React.createElement("select", { value: eng.status || "Planned", onChange: e => updEng(eng._i, "status", e.target.value), style: inputS({ width: "100%", background: c.bg, color: c.text, fontWeight: 700, border: "1px solid " + c.border }) },
+                          Object.keys(ENG_STATUS).map(s => /*#__PURE__*/React.createElement("option", { key: s, value: s }, s))
+                        )
+                      ),
+                      /*#__PURE__*/React.createElement("button", { onClick: () => delEng(eng._i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1, alignSelf: "flex-end", paddingBottom: 6 } }, "×")
+                    ),
+                    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 160px", gap: 8 } },
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Purpose / Objective"),
+                        /*#__PURE__*/React.createElement("input", { value: eng.purpose || "", onChange: e => updEng(eng._i, "purpose", e.target.value), placeholder: "What do we want to accomplish?", style: inputS({ width: "100%" }) })
+                      ),
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Outcome / Notes"),
+                        /*#__PURE__*/React.createElement("input", { value: eng.notes || "", onChange: e => updEng(eng._i, "notes", e.target.value), placeholder: "Result or follow-up...", style: inputS({ width: "100%" }) })
+                      ),
+                      /*#__PURE__*/React.createElement("div", null,
+                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "D&G Owner"),
+                        /*#__PURE__*/React.createElement("select", { value: eng.owner || "", onChange: e => updEng(eng._i, "owner", e.target.value), style: inputS({ width: "100%", cursor: "pointer" }) },
+                          /*#__PURE__*/React.createElement("option", { value: "" }, "-- Assign --"),
+                          (roster || []).map(r => { const n = typeof r === "string" ? r : r.name; return /*#__PURE__*/React.createElement("option", { key: n, value: n }, n); })
+                        )
+                      )
+                    )
+                  )
+                )
+              );
+            })
+          ),
+      /*#__PURE__*/React.createElement("button", { onClick: addEngagement, style: { marginTop: 14, padding: "6px 16px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Engagement")
+    ),
+    sections.map(({
     key,
     title,
     cols
@@ -2836,6 +3252,7 @@ function PricingTab({
       [k]: v
     }
   }));
+  const uMeta = (k, v) => setData(p => ({ ...p, meta: { ...p.meta, [k]: v } }));
   const pr = data.pricing;
   const addF = () => u("fpdsData", [...pr.fpdsData, {
     contractId: "",
@@ -2890,13 +3307,13 @@ function PricingTab({
     onChange: v => u("totalObligated", v)
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "PoP Start",
-    value: pr.popStart,
-    onChange: v => u("popStart", v),
+    value: data.meta.popStart,
+    onChange: v => uMeta("popStart", v),
     type: "date"
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "PoP End",
-    value: pr.popEnd,
-    onChange: v => u("popEnd", v),
+    value: data.meta.popEnd,
+    onChange: v => uMeta("popEnd", v),
     type: "date"
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Estimated FTEs",
@@ -3039,6 +3456,177 @@ function PricingTab({
       fontWeight: 700
     }
   }, "+ Add FPDS Row")));
+}
+function StaffingTab({ data, setData }) {
+  const CE = React.createElement;
+  const LEVELS = ["", "Junior", "Journeyman", "Senior", "SME"];
+  const EDUCATION = ["", "High School", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Doctorate"];
+  const COMPANIES = ["D&G", "GH", "LMI", "UNCOMN", "D&G 1099", "Other"];
+  const staff = data.staffingPlan || [];
+
+  const blankRow = () => ({
+    id: Date.now() + Math.random(),
+    positionTitle: "",
+    proposedTitle: "",
+    keyPersonnel: false,
+    name: "",
+    company: "D&G",
+    level: "",
+    education: "",
+    yrsExperience: "",
+    dutyDescription: "",
+    fte: ""
+  });
+
+  const addRow = () => setData(p => ({ ...p, staffingPlan: [...(p.staffingPlan || []), blankRow()] }));
+  const delRow = i => setData(p => ({ ...p, staffingPlan: (p.staffingPlan || []).filter((_, j) => j !== i) }));
+  const upd = (i, field, val) => setData(p => {
+    const a = [...(p.staffingPlan || [])];
+    a[i] = { ...a[i], [field]: val };
+    return { ...p, staffingPlan: a };
+  });
+
+  const COMPANY_COLORS = { "D&G": { bg: "#e8f0fe", text: "#1a56db" }, "GH": { bg: "#fef3c7", text: "#92400e" }, "LMI": { bg: "#ede9fe", text: "#6d28d9" }, "UNCOMN": { bg: "#d1fae5", text: "#065f46" }, "D&G 1099": { bg: "#fee2e2", text: "#991b1b" }, "Other": { bg: "#f3f4f6", text: "#374151" } };
+  const LEVEL_COLORS = { "Junior": { bg: "#e0f2fe", text: "#0369a1" }, "Journeyman": { bg: "#fef9c3", text: "#854d0e" }, "Senior": { bg: "#f0fdf4", text: "#15803d" }, "SME": { bg: "#fdf2f8", text: "#86198f" } };
+
+  const inp = (extra) => ({ fontSize: 12, padding: "5px 7px", borderRadius: 5, border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a", fontFamily: "inherit", width: "100%", boxSizing: "border-box", ...extra });
+  const sel = (extra) => ({ ...inp(), cursor: "pointer", ...extra });
+
+  // Summary stats
+  const total = staff.length;
+  const byCompany = {};
+  staff.forEach(s => { byCompany[s.company || "D&G"] = (byCompany[s.company || "D&G"] || 0) + 1; });
+  const keyCount = staff.filter(s => s.keyPersonnel).length;
+  const vacantCount = staff.filter(s => !s.name || s.name.trim().toUpperCase() === "VACANT").length;
+
+  return CE("div", { style: { padding: "0 0 32px 0" } },
+    CE(Sec, { title: "Staffing Plan" },
+      CE("div", { style: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 } },
+        CE("div", { style: { padding: "8px 16px", borderRadius: 8, background: "#f0f4ff", border: "1px solid #c7d7fd", display: "flex", gap: 8, alignItems: "center" } },
+          CE("span", { style: { fontSize: 20, fontWeight: 700, color: NAVY } }, total),
+          CE("span", { style: { fontSize: 12, color: "#4B5563" } }, "Total Positions")
+        ),
+        CE("div", { style: { padding: "8px 16px", borderRadius: 8, background: "#fff7ed", border: "1px solid #fed7aa", display: "flex", gap: 8, alignItems: "center" } },
+          CE("span", { style: { fontSize: 20, fontWeight: 700, color: ORANGE } }, keyCount),
+          CE("span", { style: { fontSize: 12, color: "#92400e" } }, "Key Personnel")
+        ),
+        CE("div", { style: { padding: "8px 16px", borderRadius: 8, background: "#fef2f2", border: "1px solid #fecaca", display: "flex", gap: 8, alignItems: "center" } },
+          CE("span", { style: { fontSize: 20, fontWeight: 700, color: "#dc2626" } }, vacantCount),
+          CE("span", { style: { fontSize: 12, color: "#991b1b" } }, "Vacant")
+        ),
+        ...Object.entries(byCompany).map(([co, cnt]) => {
+          const c = COMPANY_COLORS[co] || COMPANY_COLORS["Other"];
+          return CE("div", { key: co, style: { padding: "8px 16px", borderRadius: 8, background: c.bg, border: "1px solid " + c.bg, display: "flex", gap: 8, alignItems: "center" } },
+            CE("span", { style: { fontSize: 18, fontWeight: 700, color: c.text } }, cnt),
+            CE("span", { style: { fontSize: 12, color: c.text } }, co)
+          );
+        })
+      ),
+
+      staff.length === 0
+        ? CE("div", { style: { padding: "40px", textAlign: "center", border: "1px dashed #e0e0e0", borderRadius: 10, color: "#aaa", fontSize: 13, marginBottom: 16 } },
+            "No positions added yet — click \"+ Add Position\" to build the staffing plan")
+        : CE("div", { style: { overflowX: "auto" } },
+            CE("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 } },
+              CE("thead", null,
+                CE("tr", { style: { background: NAVY, color: "#fff" } },
+                  CE("th", { style: { padding: "9px 8px", width: 32, textAlign: "center", fontWeight: 700, fontSize: 11 } }, "#"),
+                  CE("th", { style: { padding: "9px 8px", width: 30, textAlign: "center", fontWeight: 700, fontSize: 11 } }, "KP"),
+                  CE("th", { style: { padding: "9px 8px", minWidth: 170, textAlign: "left", fontWeight: 700, fontSize: 11 } }, "Position Title"),
+                  CE("th", { style: { padding: "9px 8px", minWidth: 130, textAlign: "left", fontWeight: 700, fontSize: 11 } }, "Name"),
+                  CE("th", { style: { padding: "9px 8px", width: 90, textAlign: "left", fontWeight: 700, fontSize: 11 } }, "Company"),
+                  CE("th", { style: { padding: "9px 8px", width: 100, textAlign: "left", fontWeight: 700, fontSize: 11 } }, "Level"),
+                  CE("th", { style: { padding: "9px 8px", width: 70, textAlign: "center", fontWeight: 700, fontSize: 11 } }, "Yrs Exp"),
+                  CE("th", { style: { padding: "9px 8px", minWidth: 130, textAlign: "left", fontWeight: 700, fontSize: 11 } }, "Education"),
+                  CE("th", { style: { padding: "9px 8px", minWidth: 120, textAlign: "left", fontWeight: 700, fontSize: 11 } }, "Certification"),
+                  CE("th", { style: { padding: "9px 8px", width: 110, textAlign: "left", fontWeight: 700, fontSize: 11 } }, "Salary"),
+                  CE("th", { style: { padding: "9px 8px", width: 32 } })
+                )
+              ),
+              CE("tbody", null,
+                staff.map((row, i) => {
+                  const isVacant = !row.name || row.name.trim().toUpperCase() === "VACANT";
+                  const lvlC = LEVEL_COLORS[row.level] || {};
+                  const coC = COMPANY_COLORS[row.company] || COMPANY_COLORS["Other"];
+                  return CE("tr", { key: row.id || i, style: { borderBottom: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" } },
+                    CE("td", { style: { padding: "6px 8px", textAlign: "center", color: "#999", fontWeight: 700, fontSize: 11 } }, i + 1),
+                    CE("td", { style: { padding: "6px 8px", textAlign: "center" } },
+                      CE("button", {
+                        onClick: () => upd(i, "keyPersonnel", !row.keyPersonnel),
+                        title: row.keyPersonnel ? "Key Personnel" : "Not Key Personnel",
+                        style: { width: 22, height: 22, borderRadius: 4, border: row.keyPersonnel ? "none" : "2px solid #d0d5dd", background: row.keyPersonnel ? ORANGE : "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }
+                      },
+                        row.keyPersonnel ? CE("i", { className: "ti ti-star-filled", style: { fontSize: 11, color: "#fff" } }) : CE("i", { className: "ti ti-star", style: { fontSize: 11, color: "#ccc" } })
+                      )
+                    ),
+                    CE("td", { style: { padding: "4px 6px" } }, CE("input", { value: row.positionTitle || "", onChange: e => upd(i, "positionTitle", e.target.value), placeholder: "Position title...", style: inp() })),
+                    CE("td", { style: { padding: "4px 6px" } },
+                      CE("input", {
+                        value: row.name || "", onChange: e => upd(i, "name", e.target.value),
+                        placeholder: "VACANT",
+                        style: inp({ fontWeight: isVacant ? 600 : 400, color: isVacant ? "#dc2626" : "#1a1a1a", fontStyle: isVacant ? "italic" : "normal" })
+                      })
+                    ),
+                    CE("td", { style: { padding: "4px 6px" } },
+                      CE("select", { value: row.company || "D&G", onChange: e => upd(i, "company", e.target.value), style: sel({ background: coC.bg, color: coC.text, fontWeight: 700, border: "1px solid " + coC.bg }) },
+                        COMPANIES.map(c => CE("option", { key: c, value: c }, c))
+                      )
+                    ),
+                    CE("td", { style: { padding: "4px 6px" } },
+                      CE("select", { value: row.level || "", onChange: e => upd(i, "level", e.target.value), style: sel(lvlC.bg ? { background: lvlC.bg, color: lvlC.text, fontWeight: 600 } : {}) },
+                        LEVELS.map(l => CE("option", { key: l, value: l }, l || "-- Level --"))
+                      )
+                    ),
+                    CE("td", { style: { padding: "4px 6px" } }, CE("input", { type: "number", min: 0, value: row.yrsExperience || "", onChange: e => upd(i, "yrsExperience", e.target.value), placeholder: "0", style: inp({ textAlign: "center" }) })),
+                    CE("td", { style: { padding: "4px 6px" } },
+                      CE("select", { value: row.education || "", onChange: e => upd(i, "education", e.target.value), style: sel() },
+                        EDUCATION.map(e => CE("option", { key: e, value: e }, e || "-- Education --"))
+                      )
+                    ),
+                    CE("td", { style: { padding: "4px 6px" } }, CE("input", { value: row.certification || "", onChange: e => upd(i, "certification", e.target.value), placeholder: "e.g. PMP, AWS...", style: inp() })),
+                    CE("td", { style: { padding: "4px 6px" } }, CE("input", { value: row.salary || "", onChange: e => upd(i, "salary", e.target.value), placeholder: "$0,000", style: inp() })),
+                    CE("td", { style: { padding: "4px 6px", textAlign: "center" } },
+                      CE("button", { onClick: () => delRow(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
+                    )
+                  );
+                })
+              )
+            )
+          ),
+
+      CE("button", {
+        onClick: addRow,
+        style: { marginTop: 14, padding: "6px 16px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" }
+      }, "+ Add Position")
+    ),
+
+    staff.some(s => s.dutyDescription)
+      ? null
+      : null,
+
+    CE(Sec, { title: "Duty Descriptions" },
+      staff.length === 0
+        ? CE("div", { style: { color: "#aaa", fontSize: 13 } }, "Add positions above to enter duty descriptions.")
+        : staff.map((row, i) =>
+            CE("div", { key: row.id || i, style: { marginBottom: 16, padding: "14px 16px", background: "#fafafa", borderRadius: 8, border: "1px solid #eee" } },
+              CE("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 8 } },
+                CE("span", { style: { fontSize: 12, fontWeight: 700, color: "#888" } }, i + 1 + "."),
+                CE("span", { style: { fontSize: 13, fontWeight: 700, color: NAVY } }, row.positionTitle || row.proposedTitle || "Untitled Position"),
+                row.proposedTitle && row.positionTitle && CE("span", { style: { fontSize: 11, color: "#1a56db" } }, "→ " + row.proposedTitle),
+                row.keyPersonnel && CE("span", { style: { fontSize: 10, fontWeight: 800, background: ORANGE + "22", color: ORANGE, borderRadius: 4, padding: "2px 7px", textTransform: "uppercase" } }, "Key Personnel"),
+                CE("span", { style: { fontSize: 11, color: "#888" } }, row.name || "VACANT")
+              ),
+              CE("textarea", {
+                value: row.dutyDescription || "",
+                onChange: e => upd(i, "dutyDescription", e.target.value),
+                placeholder: "Describe the contractor's duties and responsibilities for this position...",
+                rows: 3,
+                style: { width: "100%", fontSize: 12, padding: "8px 10px", borderRadius: 6, border: "1px solid #d0d5dd", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", lineHeight: 1.5 }
+              })
+            )
+          )
+    )
+  );
 }
 function SolutionTab({
   data,
@@ -3817,7 +4405,8 @@ function SolutionTab({
 }
 function ActionsTab({
   data,
-  setData
+  setData,
+  roster
 }) {
   const upd = (w, i, f, v) => setData(p => {
     const a = [...p.actionItems[w]];
@@ -3874,6 +4463,12 @@ function ActionsTab({
       }]
     }
   }));
+  const rosterNames = ["", ...(roster || DG_PEOPLE.slice(1)).map(r => typeof r === "object" ? r.name : r)];
+  const emailFor = name => {
+    if (!roster || !name) return "";
+    const r = roster.find(p => (typeof p === "object" ? p.name : p) === name);
+    return r && typeof r === "object" ? (r.email || "") : "";
+  };
   const COLS = [{
     key: "actionee",
     label: "Actionee",
@@ -3897,118 +4492,54 @@ function ActionsTab({
     label: "Comments",
     w: 150
   }];
-  const tbl = (w, rows) => /*#__PURE__*/React.createElement("div", {
-    style: {
-      border: "1px solid #e8eaed",
-      borderRadius: 8,
-      overflow: "hidden",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: 12
-    }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
-    style: {
-      background: "#f5f6fa"
-    }
-  }, /*#__PURE__*/React.createElement("th", {
-    style: {
-      padding: "8px 12px",
-      width: 32,
-      fontWeight: 700,
-      color: "#666"
-    }
-  }, "#"), COLS.map(c => /*#__PURE__*/React.createElement("th", {
-    key: c.key,
-    style: {
-      padding: "8px 12px",
-      textAlign: "left",
-      fontWeight: 700,
-      color: "#666"
-    }
-  }, c.label)), w === "completed" && /*#__PURE__*/React.createElement("th", {
-    style: {
-      padding: "8px 12px",
-      fontWeight: 700,
-      color: "#666"
-    }
-  }, "Completed"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      padding: "8px 12px",
-      width: 70
-    }
-  }))), /*#__PURE__*/React.createElement("tbody", null, rows.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: 8,
-    style: {
-      padding: "20px",
-      textAlign: "center",
-      color: "#888",
-      fontSize: 12
-    }
-  }, "No items")), rows.map((row, idx) => /*#__PURE__*/React.createElement("tr", {
-    key: row.id || idx,
-    style: {
-      borderTop: "1px solid #eee",
-      background: w === "completed" ? "#f0f7f0" : undefined
-    }
-  }, /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "6px 12px",
-      color: "#888",
-      fontWeight: 700
-    }
-  }, idx + 1), COLS.map(c => /*#__PURE__*/React.createElement("td", {
-    key: c.key,
-    style: { padding: "6px 8px" }
-  }, c.key === "actionee"
-    ? /*#__PURE__*/React.createElement("select", {
-        value: row[c.key] || "",
-        onChange: e => upd(w, idx, c.key, e.target.value),
-        style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" }
-      }, DG_PEOPLE.map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Assign --")))
-    : /*#__PURE__*/React.createElement("input", {
-        type: c.type || "text",
-        value: row[c.key] || "",
-        onChange: e => upd(w, idx, c.key, e.target.value),
-        style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" }
-      }))), w === "completed" && /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "6px 12px",
-      fontSize: 11,
-      color: "#2e7d32",
-      fontWeight: 700
-    }
-  }, row.dateCompleted), /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "6px 10px"
-    }
-  }, w === "open" ? /*#__PURE__*/React.createElement("button", {
-    onClick: () => markDone(idx),
-    style: {
-      fontSize: 11,
-      padding: "3px 8px",
-      borderRadius: 4,
-      border: "1px solid #2e7d32",
-      color: "#2e7d32",
-      background: "transparent",
-      cursor: "pointer",
-      fontWeight: 700
-    }
-  }, "\u2713 Done") : /*#__PURE__*/React.createElement("button", {
-    onClick: () => reopen(idx),
-    style: {
-      fontSize: 11,
-      padding: "3px 8px",
-      borderRadius: 4,
-      border: "1px solid #888",
-      color: "#888",
-      background: "transparent",
-      cursor: "pointer"
-    }
-  }, "Reopen")))))));
+  const tbl = (w, rows) => {
+    const CE = React.createElement;
+    const mailHref = (row) => {
+      const email = emailFor(row.actionee);
+      if (!email) return null;
+      const pursuit = data.meta && data.meta.opportunityName ? data.meta.opportunityName : "Capture";
+      return "mailto:" + email
+        + "?subject=" + encodeURIComponent("Action Item \u2014 " + (row.task || "Task") + " \u2014 " + pursuit)
+        + "&body=" + encodeURIComponent("Hi " + (row.actionee || "Team") + ",\n\nYou have been assigned an action item in the Capture Tracker.\n\nPursuit: " + pursuit + "\nTask: " + (row.task || "") + "\nDue: " + (row.dueDate || "Not set") + "\nComments: " + (row.comments || "None") + "\n\nPlease log into the Capture Tracker to update the status.\n\nThank you");
+    };
+    return CE("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginBottom: 8 } },
+      CE("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12 } },
+        CE("thead", null,
+          CE("tr", { style: { background: "#f5f6fa" } },
+            CE("th", { style: { padding: "8px 12px", width: 32, fontWeight: 700, color: "#666" } }, "#"),
+            COLS.map(c => CE("th", { key: c.key, style: { padding: "8px 12px", textAlign: "left", fontWeight: 700, color: "#666" } }, c.label)),
+            w === "completed" && CE("th", { style: { padding: "8px 12px", fontWeight: 700, color: "#666" } }, "Completed"),
+            CE("th", { style: { padding: "8px 12px", width: 70 } })
+          )
+        ),
+        CE("tbody", null,
+          rows.length === 0 && CE("tr", null, CE("td", { colSpan: 8, style: { padding: "20px", textAlign: "center", color: "#888", fontSize: 12 } }, "No items")),
+          rows.map((row, idx) => {
+            const href = mailHref(row);
+            return CE("tr", { key: row.id || idx, style: { borderTop: "1px solid #eee", background: w === "completed" ? "#f0f7f0" : undefined } },
+              CE("td", { style: { padding: "6px 12px", color: "#888", fontWeight: 700 } }, idx + 1),
+              COLS.map(c => CE("td", { key: c.key, style: { padding: "6px 8px" } },
+                c.key === "actionee"
+                  ? CE("select", { value: row[c.key] || "", onChange: e => upd(w, idx, c.key, e.target.value), style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" } },
+                      rosterNames.map(p => CE("option", { key: p, value: p }, p || "-- Assign --")))
+                  : CE("input", { type: c.type || "text", value: row[c.key] || "", onChange: e => upd(w, idx, c.key, e.target.value), style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" } })
+              )),
+              w === "completed" && CE("td", { style: { padding: "6px 12px", fontSize: 11, color: "#2e7d32", fontWeight: 700 } }, row.dateCompleted),
+              CE("td", { style: { padding: "6px 10px" } },
+                CE("div", { style: { display: "flex", alignItems: "center", gap: 4 } },
+                  w === "open" && href ? CE("a", { href: href, title: "Email " + row.actionee, style: { display: "flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, borderRadius: 4, border: "1px solid #90caf9", color: "#1565c0", background: "#e3f2fd", textDecoration: "none", fontSize: 13 } },
+                    CE("i", { className: "ti ti-mail", "aria-hidden": "true" })) : null,
+                  w === "open"
+                    ? CE("button", { onClick: () => markDone(idx), style: { fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid #2e7d32", color: "#2e7d32", background: "transparent", cursor: "pointer", fontWeight: 700 } }, "\u2713 Done")
+                    : CE("button", { onClick: () => reopen(idx), style: { fontSize: 11, padding: "3px 8px", borderRadius: 4, border: "1px solid #888", color: "#888", background: "transparent", cursor: "pointer" } }, "Reopen")
+                )
+              )
+            );
+          })
+        )
+      )
+    );
+  };
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(Sec, {
     title: "Open Action Items"
   }, tbl("open", data.actionItems.open), /*#__PURE__*/React.createElement("button", {
@@ -4077,7 +4608,7 @@ const PWIN_FACTORS = [{
     weight: 0.10
   }]
 }];
-function calcPwin(scores) {
+function calcPwin(scores, customWeights) {
   const allItems = PWIN_FACTORS.flatMap(s => s.items);
   const scored = allItems.filter(i => scores[i.id] > 0);
   if (scored.length === 0) return {
@@ -4086,12 +4617,14 @@ function calcPwin(scores) {
     verdict: "",
     color: "#aaa"
   };
+  const getW = id => customWeights && customWeights[id] != null ? customWeights[id] : Math.round((allItems.find(i => i.id === id) || {weight: 0.1}).weight * 100);
   let weightedSum = 0,
     totalWeight = 0;
   allItems.forEach(item => {
     if (scores[item.id] > 0) {
-      weightedSum += scores[item.id] * item.weight;
-      totalWeight += item.weight;
+      const w = getW(item.id);
+      weightedSum += scores[item.id] * w;
+      totalWeight += w;
     }
   });
   const normalized = weightedSum / totalWeight;
@@ -4122,13 +4655,14 @@ function calcPwin(scores) {
 }
 function PwinBadge({
   scores,
+  weights,
   compact = false
 }) {
   const {
     pwin,
     verdict,
     color
-  } = calcPwin(scores || {});
+  } = calcPwin(scores || {}, weights);
   if (!verdict) return compact ? /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
@@ -4197,13 +4731,25 @@ function PwinTab({
       }
     }));
   };
+  const DEFAULT_WEIGHTS = { cust_rel: 25, req_shape: 10, incumbent: 15, teaming: 10, tech_fit: 20, past_perf: 10, price: 10 };
+  const weights = Object.assign({}, DEFAULT_WEIGHTS, data.pwin.weights || {});
+  const totalW = Object.values(weights).reduce((s, v) => s + (v || 0), 0) || 1;
+  const effPct = id => Math.round((weights[id] || 10) / totalW * 100);
+  const setWeight = (id, val) => setData(p => ({
+    ...p,
+    pwin: { ...p.pwin, weights: { ...weights, [id]: val }, lastUpdated: new Date().toISOString() }
+  }));
+  const resetWeights = () => setData(p => ({
+    ...p,
+    pwin: { ...p.pwin, weights: { ...DEFAULT_WEIGHTS }, lastUpdated: new Date().toISOString() }
+  }));
   const scores = data.pwin.scores || {};
   const {
     composite,
     pwin,
     verdict,
     color
-  } = calcPwin(scores);
+  } = calcPwin(scores, weights);
   const allItems = PWIN_FACTORS.flatMap(s => s.items);
   const scored = allItems.filter(i => scores[i.id] > 0).length;
   const SCORE_COLORS = {
@@ -4333,7 +4879,7 @@ function PwinTab({
       fontWeight: 800,
       color: "#aaa"
     }
-  }, "\u2014"))), scored > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "\u2014"))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 20
     }
@@ -4424,9 +4970,9 @@ function PwinTab({
       textAlign: "center",
       fontWeight: 700,
       color: "#666",
-      width: "70px"
+      width: "120px"
     }
-  }, "Weight"), /*#__PURE__*/React.createElement("th", {
+  }, "Importance"), /*#__PURE__*/React.createElement("th", {
     style: {
       padding: "8px 14px",
       textAlign: "center",
@@ -4436,7 +4982,7 @@ function PwinTab({
     }
   }, "Weighted"))), /*#__PURE__*/React.createElement("tbody", null, section.items.map((item, idx) => {
     const sc = scores[item.id] || 0;
-    const weighted = sc > 0 ? Math.round(sc * item.weight * 20) : null;
+    const weighted = sc > 0 ? Math.round(sc * effPct(item.id) / 100 * 20) : null;
     return /*#__PURE__*/React.createElement("tr", {
       key: item.id,
       style: {
@@ -4488,13 +5034,20 @@ function PwinTab({
       }, n);
     }))), /*#__PURE__*/React.createElement("td", {
       style: {
-        padding: "8px 14px",
-        textAlign: "center",
-        fontSize: 12,
-        color: "#888",
-        fontWeight: 600
+        padding: "6px 14px",
+        textAlign: "center"
       }
-    }, Math.round(item.weight * 100), "%"), /*#__PURE__*/React.createElement("td", {
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "range",
+      min: 1,
+      max: 20,
+      step: 1,
+      value: weights[item.id] || 10,
+      onChange: e => setWeight(item.id, parseInt(e.target.value)),
+      style: { width: "90%", cursor: "pointer", accentColor: ORANGE }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: 10, color: "#888", marginTop: 2 }
+    }, effPct(item.id), "% effective")), /*#__PURE__*/React.createElement("td", {
       style: {
         padding: "8px 14px",
         textAlign: "center"
@@ -4538,17 +5091,19 @@ function PwinTab({
       fontSize: 12,
       color: "#555"
     }
-  }, /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: NAVY
-    }
-  }, "Scoring guide:"), " 1 = Poor/no evidence \xB7 2 = Weak/minimal \xB7 3 = Moderate/some evidence \xB7 4 = Strong/well-positioned \xB7 5 = Excellent/clear advantage. Pwin auto-adjusts for completeness \u2014 score all 8 factors for the most accurate estimate."));
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }
+  }, /*#__PURE__*/React.createElement("strong", { style: { color: NAVY } }, "Scoring guide:"),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: resetWeights,
+    style: { fontSize: 11, padding: "3px 10px", borderRadius: 5, border: "1px solid #ccc", background: "transparent", color: "#888", cursor: "pointer" }
+  }, "Reset importance to defaults")), " 1 = Poor/no evidence \xB7 2 = Weak/minimal \xB7 3 = Moderate/some evidence \xB7 4 = Strong/well-positioned \xB7 5 = Excellent/clear advantage. Pwin auto-adjusts for completeness \u2014 score all 7 factors for the most accurate estimate."));
 }
 
 // ── PURSUIT DETAIL VIEW ───────────────────────────────────────────
 // ── CAPTURE PHASES TAB ────────────────────────────────────────────
 const DG_PEOPLE = ["", "Leah Sanders", "Greg Beaulieu", "Ryan Bakazan", "Laura Magiera", "Cami Mercado", "Mike Ennis", "Ryan Lookabill", "Scott Washburn"];
-function CapturePhaseTab({ data, setData }) {
+function CapturePhaseTab({ data, setData, roster }) {
   const cp = data.capturePhases || {};
   const DEFAULT_P2 = [
     { id:"p2a1", label:"Understand customer mission and priorities", status:"", assignee:"", notes:"" },
@@ -4595,7 +5150,7 @@ function CapturePhaseTab({ data, setData }) {
         ...prev.capturePhases,
         [phase]: {
           ...ph,
-          activities: ph.activities.map(a => a.id === id ? { ...a, [field]: val } : a)
+          activities: (ph.activities || []).map(a => a.id === id ? { ...a, [field]: val } : a)
         }
       }
     };
@@ -4668,7 +5223,7 @@ function CapturePhaseTab({ data, setData }) {
             }, isChecked && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 13, fontWeight: 700 } }, "✓")),
             /*#__PURE__*/React.createElement("span", { style: { flex: 1, fontSize: 13, color: isChecked ? "#aaa" : "#1a1a1a", textDecoration: isChecked ? "line-through" : "none" } }, a.label),
             /*#__PURE__*/React.createElement("select", { value: a.assignee, onChange: e => updActivity(phase, a.id, "assignee", e.target.value), style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", minWidth: 120 } },
-              DG_PEOPLE.map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Owner --"))
+              ["", ...(roster || DG_PEOPLE.slice(1)).map(r => typeof r === "object" ? r.name : r)].map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Owner --"))
             ),
             /*#__PURE__*/React.createElement("input", { value: a.notes, onChange: e => updActivity(phase, a.id, "notes", e.target.value), placeholder: "Notes...", style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", width: 200 } })
           );
@@ -4913,6 +5468,10 @@ const TABS = [{
   label: "Solution",
   icon: "ti-bulb"
 }, {
+  id: "staffing",
+  label: "Staffing",
+  icon: "ti-users"
+}, {
   id: "actions",
   label: "Action Items",
   icon: "ti-checkbox"
@@ -4923,7 +5482,8 @@ function PursuitView({
   onBack,
   onArchive,
   onRestore,
-  onDelete
+  onDelete,
+  roster
 }) {
   const [activeTab, setActiveTab] = useState("meta");
   const [data, setData] = useState(pursuit);
@@ -4962,7 +5522,8 @@ function PursuitView({
     }),
     capturePhases: /*#__PURE__*/React.createElement(CapturePhaseTab, {
       data: data,
-      setData: setData
+      setData: setData,
+      roster: roster
     }),
     capmatrix: /*#__PURE__*/React.createElement(CapMatrixTab, {
       data: data,
@@ -4974,7 +5535,8 @@ function PursuitView({
     }),
     callplan: /*#__PURE__*/React.createElement(CallPlanTab, {
       data: data,
-      setData: setData
+      setData: setData,
+      roster: roster
     }),
     competition: /*#__PURE__*/React.createElement(CompetitionTab, {
       data: data,
@@ -4992,9 +5554,14 @@ function PursuitView({
       data: data,
       setData: setData
     }),
-    actions: /*#__PURE__*/React.createElement(ActionsTab, {
+    staffing: /*#__PURE__*/React.createElement(StaffingTab, {
       data: data,
       setData: setData
+    }),
+    actions: /*#__PURE__*/React.createElement(ActionsTab, {
+      data: data,
+      setData: setData,
+      roster: roster
     })
   };
   return /*#__PURE__*/React.createElement("div", {
@@ -5118,7 +5685,7 @@ function PursuitView({
       pwin,
       verdict,
       color
-    } = calcPwin(((_data$pwin4 = data.pwin) === null || _data$pwin4 === void 0 ? void 0 : _data$pwin4.scores) || {});
+    } = calcPwin(((_data$pwin4 = data.pwin) === null || _data$pwin4 === void 0 ? void 0 : _data$pwin4.scores) || {}, (data.pwin || {}).weights);
     return verdict ? /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 11,
@@ -5266,9 +5833,15 @@ function App() {
   const [pursuits, setPursuits] = useState([]);
   const [activePursuitId, setActivePursuitId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [roster, setRoster] = useState(DEFAULT_ROSTER);
+  const [showTeamSettings, setShowTeamSettings] = useState(false);
   useEffect(() => {
     const saved = lsGet(STORAGE_KEY);
     if (saved && Array.isArray(saved)) setPursuits(saved);
+    const savedRoster = lsGet(ROSTER_KEY);
+    if (savedRoster && Array.isArray(savedRoster)) {
+      setRoster(savedRoster.map(r => typeof r === "string" ? {name: r, email: ""} : r));
+    }
     setLoading(false);
   }, []);
   const persist = useCallback(list => {
@@ -5305,6 +5878,40 @@ function App() {
       archivedAt: null
     } : p));
   };
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(pursuits, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dg_capture_backup_" + new Date().toISOString().split("T")[0] + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  const handleImportFile = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) throw new Error("Expected an array of pursuits");
+        if (window.confirm("Import " + imported.length + " pursuit(s)? This will replace all current data.")) {
+          persist(imported);
+          setActivePursuitId(null);
+        }
+      } catch (err) {
+        alert("Could not import file: " + err.message);
+      }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  };
+  const saveRoster = newRoster => {
+    setRoster(newRoster);
+    lsSet(ROSTER_KEY, newRoster);
+  };
   if (loading) return /*#__PURE__*/React.createElement("div", {
     style: {
       padding: 60,
@@ -5321,7 +5928,8 @@ function App() {
       onBack: () => setActivePursuitId(null),
       onArchive: handleArchive,
       onRestore: handleRestore,
-      onDelete: handleDelete
+      onDelete: handleDelete,
+      roster: roster
     });
   }
   return /*#__PURE__*/React.createElement("div", {
@@ -5358,13 +5966,20 @@ function App() {
       fontWeight: 700,
       color: "#fff"
     }
-  }, "D&G Solutions \u2014 Capture Pipeline")), /*#__PURE__*/React.createElement(Dashboard, {
+  }, "D&G Solutions \u2014 Capture Pipeline")), showTeamSettings && /*#__PURE__*/React.createElement(TeamSettingsModal, {
+    roster: roster,
+    onSave: saveRoster,
+    onClose: () => setShowTeamSettings(false)
+  }), /*#__PURE__*/React.createElement(Dashboard, {
     pursuits: pursuits,
     onCreate: handleCreate,
     onOpen: setActivePursuitId,
     onDelete: handleDelete,
     onArchive: handleArchive,
-    onRestore: handleRestore
+    onRestore: handleRestore,
+    onExport: handleExport,
+    onImportFile: handleImportFile,
+    onManageRoster: () => setShowTeamSettings(true)
   }));
 }
 ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
