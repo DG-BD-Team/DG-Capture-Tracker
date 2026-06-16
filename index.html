@@ -6264,11 +6264,22 @@ function App() {
     } : p));
     if (activePursuitId === id) setActivePursuitId(null);
   };
+  const handleSubmit = id => {
+    persist(pursuits.map(p => p.id === id ? {
+      ...p,
+      submitted: true,
+      submittedAt: new Date().toISOString(),
+      archived: false
+    } : p));
+    if (activePursuitId === id) setActivePursuitId(null);
+  };
   const handleRestore = id => {
     persist(pursuits.map(p => p.id === id ? {
       ...p,
       archived: false,
-      archivedAt: null
+      archivedAt: null,
+      submitted: false,
+      submittedAt: null
     } : p));
   };
   const handleExport = () => {
