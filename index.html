@@ -1397,31 +1397,22 @@ function PursuitCard({
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, "Open"), !isArchived && onArchive && /*#__PURE__*/React.createElement("button", {
+  }, "Open"), !isArchived && !isSubmitted && onSubmit && /*#__PURE__*/React.createElement("button", {
+    onClick: () => { if (window.confirm(`Mark "${p.meta.opportunityName || "this pursuit"}" as Submitted?`)) onSubmit(p.id); },
+    style: { display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", background: "transparent", color: "#00695c", border: "1px solid #b2dfdb", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" },
+    title: "Mark as Submitted"
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-send", style: { fontSize: 13 }, "aria-hidden": "true" }), "Submitted"),
+  !isArchived && !isSubmitted && onArchive && /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       if (window.confirm(`Move "${p.meta.opportunityName || "this pursuit"}" to No-Bid archive?`)) onArchive(p.id);
     },
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 5,
-      padding: "8px 12px",
-      background: "transparent",
-      color: "#c62828",
-      border: "1px solid #f4b8b8",
-      borderRadius: 7,
-      fontSize: 12,
-      fontWeight: 600,
-      cursor: "pointer"
-    },
+    style: { display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", background: "transparent", color: "#c62828", border: "1px solid #f4b8b8", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" },
     title: "No Bid \u2014 archive this pursuit"
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "ti ti-ban",
-    style: {
-      fontSize: 13
-    },
-    "aria-hidden": "true"
-  }), "No Bid"), isArchived && onRestore && /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-ban", style: { fontSize: 13 }, "aria-hidden": "true" }), "No Bid"),
+  isSubmitted && onRestore && /*#__PURE__*/React.createElement("button", {
+    onClick: () => onRestore(p.id),
+    style: { display: "flex", alignItems: "center", gap: 5, padding: "8px 12px", background: "transparent", color: "#555", border: "1px solid #ddd", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-refresh", style: { fontSize: 13 }, "aria-hidden": "true" }), "Restore"), isArchived && onRestore && /*#__PURE__*/React.createElement("button", {
     onClick: () => onRestore(p.id),
     style: {
       display: "flex",
