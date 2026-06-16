@@ -1522,12 +1522,19 @@ function MetaTab({
     title: "Opportunity Details"
   }, /*#__PURE__*/React.createElement(Grid, {
     cols: 3
-  }, /*#__PURE__*/React.createElement(FInput, {
-    label: "Opportunity Name",
-    value: m.opportunityName,
-    onChange: v => u("opportunityName", v),
-    wide: true
-  }), /*#__PURE__*/React.createElement(FInput, {
+  }, /*#__PURE__*/React.createElement("div", { style: { gridColumn: "1/-1", display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 } },
+    /*#__PURE__*/React.createElement(FInput, {
+      label: "Opportunity Name",
+      value: m.opportunityName,
+      onChange: v => u("opportunityName", v)
+    }),
+    /*#__PURE__*/React.createElement(FInput, {
+      label: "Pursuit Phase",
+      value: m.pursuitPhase || "Identification",
+      onChange: v => u("pursuitPhase", v),
+      options: ["Identification", "Qualification", "Capture", "Submitted", "Won", "Lost"]
+    })
+  ), /*#__PURE__*/React.createElement(FInput, {
     label: "Customer / Agency",
     value: m.customer,
     onChange: v => u("customer", v)
