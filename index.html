@@ -1138,7 +1138,15 @@ function Dashboard({
     onOpen: onOpen,
     onArchive: onArchive,
     onDelete: onDelete
-  }))), archived.length > 0 && /*#__PURE__*/React.createElement("div", {
+  }))), submitted.length > 0 && /*#__PURE__*/React.createElement("div", { style: { marginTop: 8 } },
+    /*#__PURE__*/React.createElement("button", {
+      onClick: () => setShowSubmitted(v => !v),
+      style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "transparent", border: "1px solid #b2dfdb", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#00695c", cursor: "pointer", marginBottom: 12 }
+    }, /*#__PURE__*/React.createElement("i", { className: `ti ${showSubmitted ? "ti-chevron-down" : "ti-chevron-right"}`, style: { fontSize: 13 }, "aria-hidden": "true" }), "Submitted (", submitted.length, ")"),
+    showSubmitted && /*#__PURE__*/React.createElement("div", { style: { display: "grid", gap: 10 } },
+      submitted.map(p => /*#__PURE__*/React.createElement(PursuitCard, { key: p.id, p: p, onOpen: onOpen, onRestore: onRestore, onDelete: onDelete, isSubmitted: true }))
+    )
+  ), archived.length > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8
     }
