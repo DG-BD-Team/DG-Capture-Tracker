@@ -6066,8 +6066,138 @@ function App() {
   const [roster, setRoster] = useState(DEFAULT_ROSTER);
   const [showTeamSettings, setShowTeamSettings] = useState(false);
   useEffect(() => {
+    const SEED_ID = "pursuit_638scmg_seed_v1";
+    const seed638 = {
+      id: SEED_ID,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archived: false,
+      meta: {
+        opportunityName: "638 SCMG Logistics Support – Recompete",
+        customer: "638 SCMG, Robins AFB",
+        contractVehicle: "GSA MAS & OASIS+",
+        setAside: "8a",
+        naics: "541614",
+        popStart: "2025-09-30",
+        popEnd: "2028-09-30",
+        estimatedValue: "$3.75M",
+        rfpRelease: "2026-04-30",
+        role: "Prime",
+        incumbentName: "TM Capture Services (dba Macalogic)",
+        teamingPartner: "",
+        ndaExecuted: false,
+        taExecuted: false,
+        teamingPartners: [{ name: "MacaLogic", nda: true, ta: true }],
+        competitors: [
+          { name: "Bowhead Corporation" },
+          { name: "Allutiq Corp" },
+          { name: "Rivet Operations Company LLC" },
+          { name: "Caladwich Consulting" },
+          { name: "Prime Response Inc" },
+          { name: "GBTI Solutions Inc" }
+        ],
+        competition: "",
+        deliveryLead: "Ryan Lookabill",
+        captureManager: "Greg Beaulieu",
+        functionalSME: "Ryan Bakazan"
+      },
+      gateReview: {
+        rfiDate: "2025-10-31",
+        rfpDate: "2026-04-30",
+        awardDate: "2026-07-31",
+        competitionType: "8a Set-Aside",
+        contractType: "FFP",
+        workLocation: "638 SCMG, Robins AFB, GA",
+        customerRelationship: "MacaLogic has strong relationship with Customer",
+        scope: "To provide logistics, production management, and supply planning support to the 638 SCMG. All 7x FTEs.",
+        strengths: "Incumbent on Team; 5/7 Incumbent Staff returning with signed LOIs",
+        weaknesses: "Pricing Strategy; must achieve Lowest Total Evaluated Price",
+        opportunities: "New market; first AF contract with Integrated Logistics/SCM",
+        threats: "Low-Price Bidders that can meet technical requirements and recruit new staff, including signed Letters of Intent",
+        howToWin: "Team with MacaLogic and submit competitive pricing",
+        differentiator: "Incumbent on Team",
+        proposalVolumes: "Vol 1: TEP | Vol 2: Technical Proposal",
+        ddPastPerfs: [
+          { customer: "", title: "", value: "", ftes: "" },
+          { customer: "", title: "", value: "", ftes: "" },
+          { customer: "", title: "", value: "", ftes: "" }
+        ],
+        executiveLead: "Ryan Lookabill",
+        captureManager: "Greg Beaulieu",
+        pricingLead: "Laura Magiera",
+        proposalManager: "Megan B",
+        approvalAuthority: "Dan F",
+        smeReviewer: "Ryan Bakazan",
+        nextSteps: "",
+        liveUpdates: "",
+        govwin: "",
+        samgov: "",
+        apfs: "",
+        pws: "",
+        govtribe: "",
+        teamingPartner: "",
+        teamingPct: "",
+        competition: "",
+        teamingPartners: [{ name: "MacaLogic", workshare: "49%", nda: true, ta: true }],
+        competitors: [
+          { name: "Bowhead Corporation" },
+          { name: "Allutiq Corp" },
+          { name: "Rivet Operations Company LLC" },
+          { name: "Caladwich Consulting" },
+          { name: "Prime Response Inc" },
+          { name: "GBTI Solutions Inc" }
+        ]
+      },
+      callPlan: {
+        govStaff: [{ Name: "Karen Beckford", Title: "Contracting Officer", Org: "638 SCMG", "LinkedIn/Bio": "", "Yrs at Agency": "", Email: "", Phone: "", "Reachout POC": "", "Purpose/Objective": "", "Last Contact": "", "Vision/Goals": "", "Hot Buttons": "", "Competitor Relationships": "", Notes: "" }],
+        evalBoard: [],
+        incumbentStaff: [],
+        competitorRecruiting: [],
+        engagementTimeline: []
+      },
+      competition: [],
+      teaming: [],
+      staffingPlan: [
+        { id: 1, positionTitle: "Logistics Management Specialist", keyPersonnel: false, name: "Brian Felder", company: "D&G", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "$112,000", dutyDescription: "" },
+        { id: 2, positionTitle: "Logistics Management Specialist", keyPersonnel: false, name: "VACANT", company: "D&G", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "$75,000–$85,000", dutyDescription: "M. Needlemen/P. Smith are out; need to identify candidate" },
+        { id: 3, positionTitle: "Logistics Management Specialist", keyPersonnel: false, name: "VACANT", company: "Other", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "", dutyDescription: "MacaLogic – Interviewing Candidates" },
+        { id: 4, positionTitle: "Inventory Management Specialist", keyPersonnel: false, name: "Linda Graham", company: "D&G", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "$87,500", dutyDescription: "Pending LOI" },
+        { id: 5, positionTitle: "Inventory Management Specialist", keyPersonnel: false, name: "Mark Polk", company: "D&G", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "$80,000", dutyDescription: "Signed LOI" },
+        { id: 6, positionTitle: "Inventory Management Specialist", keyPersonnel: false, name: "JoAnn Revolt", company: "Other", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "", dutyDescription: "MacaLogic – Signed LOI" },
+        { id: 7, positionTitle: "Inventory Management Specialist", keyPersonnel: false, name: "Sheila Rowan", company: "Other", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "", dutyDescription: "MacaLogic – Signed LOI" }
+      ],
+      pricing: {
+        incumbent: "TM Capture Services (dba Macalogic)",
+        contractNumber: "47QRAA19D001Z",
+        totalValue: "7665012",
+        totalObligated: "7665012",
+        popStart: "2022-09-30",
+        popEnd: "2025-09-30",
+        estimatedFtes: "15",
+        targetPct: "-5",
+        baseYear: "2489724",
+        oy1: "2554416",
+        oy2: "2620872",
+        fpdsData: [
+          { contractId: "FA853822F0122", mod: "0", obligation: "2489724", dateSigned: "2022-09-30", contractYear: "Base", comments: "" },
+          { contractId: "FA853822F0122", mod: "2", obligation: "2554416", dateSigned: "2023-06-08", contractYear: "OY1", comments: "" },
+          { contractId: "FA853822F0122", mod: "3", obligation: "2620872", dateSigned: "2024-06-12", contractYear: "OY2", comments: "" }
+        ]
+      },
+      pwin: { scores: {}, customWeights: {}, notes: "" },
+      solution: { contractIntel: {}, strengths: [], gaps: [], statements: [] },
+      meetingNotes: [],
+      actionItems: { open: [], completed: [] }
+    };
     const saved = lsGet(STORAGE_KEY);
-    if (saved && Array.isArray(saved)) setPursuits(saved);
+    if (saved && Array.isArray(saved)) {
+      const alreadySeeded = saved.some(p => p.id === SEED_ID);
+      setPursuits(alreadySeeded ? saved : [seed638, ...saved]);
+      if (!alreadySeeded) lsSet(STORAGE_KEY, [seed638, ...saved]);
+    } else {
+      setPursuits([seed638]);
+      lsSet(STORAGE_KEY, [seed638]);
+    }
     const savedRoster = lsGet(ROSTER_KEY);
     if (savedRoster && Array.isArray(savedRoster)) {
       setRoster(savedRoster.map(r => typeof r === "string" ? {name: r, email: ""} : r));
