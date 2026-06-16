@@ -6067,13 +6067,14 @@ function App() {
   const [showTeamSettings, setShowTeamSettings] = useState(false);
   useEffect(() => {
     const SEED_ID = "pursuit_638scmg_seed_v1";
+    const _base = blankPursuit(SEED_ID);
     const seed638 = {
-      id: SEED_ID,
+      ..._base,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      archived: false,
       meta: {
-        opportunityName: "638 SCMG Logistics Support – Recompete",
+        ..._base.meta,
+        opportunityName: "638 SCMG Logistics Support - Recompete",
         customer: "638 SCMG, Robins AFB",
         contractVehicle: "GSA MAS & OASIS+",
         setAside: "8a",
