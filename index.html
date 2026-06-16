@@ -3017,67 +3017,60 @@ function CallPlanTab({
       sorted.length === 0
         ? /*#__PURE__*/React.createElement("div", { style: { padding: "32px", textAlign: "center", border: "1px dashed #e0e0e0", borderRadius: 10, color: "#aaa", fontSize: 13 } },
             "No engagements planned yet — click \"+ Add Engagement\" to build your customer outreach strategy")
-        : /*#__PURE__*/React.createElement("div", { style: { position: "relative", paddingLeft: 32 } },
-            /*#__PURE__*/React.createElement("div", { style: { position: "absolute", left: 11, top: 0, bottom: 0, width: 2, background: "#e0e0e0", borderRadius: 1 } }),
-            sorted.map((eng, si) => {
-              const c = ENG_STATUS[eng.status] || ENG_STATUS["Planned"];
-              const showPhaseLabel = si === 0 || phase(eng.targetDate) !== phase(sorted[si - 1].targetDate);
-              return /*#__PURE__*/React.createElement("div", { key: eng._i },
-                showPhaseLabel && /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 12, marginTop: si > 0 ? 20 : 0 } },
-                  /*#__PURE__*/React.createElement("div", { style: { position: "absolute", left: 0, width: 24, textAlign: "center" } }),
-                  /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "#aaa" } }, phase(eng.targetDate))
-                ),
-                /*#__PURE__*/React.createElement("div", { style: { position: "relative", marginBottom: 14 } },
-                  /*#__PURE__*/React.createElement("div", { style: { position: "absolute", left: -26, top: 16, width: 14, height: 14, borderRadius: "50%", background: c.dot, border: "2px solid #fff", boxShadow: "0 0 0 2px " + c.dot } }),
-                  /*#__PURE__*/React.createElement("div", { style: { background: "#fff", border: "1px solid " + c.border, borderRadius: 10, padding: "14px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" } },
-                    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 140px 130px 110px 28px", gap: 8, alignItems: "end", marginBottom: 10 } },
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Contact"),
-                        /*#__PURE__*/React.createElement("input", { value: eng.contact || "", onChange: e => updEng(eng._i, "contact", e.target.value), placeholder: "Name...", style: inputS({ width: "100%" }) })
-                      ),
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Organization"),
-                        /*#__PURE__*/React.createElement("input", { value: eng.org || "", onChange: e => updEng(eng._i, "org", e.target.value), placeholder: "Agency / Org...", style: inputS({ width: "100%" }) })
-                      ),
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Type"),
-                        /*#__PURE__*/React.createElement("select", { value: eng.type || "Meeting", onChange: e => updEng(eng._i, "type", e.target.value), style: inputS({ width: "100%" }) },
-                          ENG_TYPES.map(t => /*#__PURE__*/React.createElement("option", { key: t, value: t }, t))
-                        )
-                      ),
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Target Date"),
-                        /*#__PURE__*/React.createElement("input", { type: "date", value: eng.targetDate || "", onChange: e => updEng(eng._i, "targetDate", e.target.value), style: inputS({ width: "100%" }) })
-                      ),
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Status"),
-                        /*#__PURE__*/React.createElement("select", { value: eng.status || "Planned", onChange: e => updEng(eng._i, "status", e.target.value), style: inputS({ width: "100%", background: c.bg, color: c.text, fontWeight: 700, border: "1px solid " + c.border }) },
-                          Object.keys(ENG_STATUS).map(s => /*#__PURE__*/React.createElement("option", { key: s, value: s }, s))
-                        )
-                      ),
-                      /*#__PURE__*/React.createElement("button", { onClick: () => delEng(eng._i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1, alignSelf: "flex-end", paddingBottom: 6 } }, "×")
-                    ),
-                    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 160px", gap: 8 } },
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Purpose / Objective"),
-                        /*#__PURE__*/React.createElement("input", { value: eng.purpose || "", onChange: e => updEng(eng._i, "purpose", e.target.value), placeholder: "What do we want to accomplish?", style: inputS({ width: "100%" }) })
-                      ),
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "Outcome / Notes"),
-                        /*#__PURE__*/React.createElement("input", { value: eng.notes || "", onChange: e => updEng(eng._i, "notes", e.target.value), placeholder: "Result or follow-up...", style: inputS({ width: "100%" }) })
-                      ),
-                      /*#__PURE__*/React.createElement("div", null,
-                        /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 } }, "D&G Owner"),
-                        /*#__PURE__*/React.createElement("select", { value: eng.owner || "", onChange: e => updEng(eng._i, "owner", e.target.value), style: inputS({ width: "100%", cursor: "pointer" }) },
-                          /*#__PURE__*/React.createElement("option", { value: "" }, "-- Assign --"),
-                          (roster || []).map(r => { const n = typeof r === "string" ? r : r.name; return /*#__PURE__*/React.createElement("option", { key: n, value: n }, n); })
-                        )
-                      )
-                    )
+        : /*#__PURE__*/React.createElement("div", { style: { overflowX: "auto", border: "1px solid #e8eaed", borderRadius: 10 } },
+            /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 } },
+              /*#__PURE__*/React.createElement("thead", null,
+                /*#__PURE__*/React.createElement("tr", { style: { background: "#f5f6fa" } },
+                  [["Date", "110px"], ["Contact", "130px"], ["Org", "120px"], ["Type", "130px"], ["Status", "110px"], ["Purpose / Objective", "1fr"], ["Outcome / Notes", "1fr"], ["Owner", "120px"], ["", "36px"]].map(([h, w]) =>
+                    /*#__PURE__*/React.createElement("th", { key: h, style: { padding: "10px 10px", textAlign: "left", fontWeight: 700, color: "#555", fontSize: 12, whiteSpace: "nowrap", width: w !== "1fr" ? w : undefined } }, h)
                   )
                 )
-              );
-            })
+              ),
+              /*#__PURE__*/React.createElement("tbody", null,
+                sorted.map((eng, si) => {
+                  const c = ENG_STATUS[eng.status] || ENG_STATUS["Planned"];
+                  const isAlt = si % 2 === 1;
+                  const tdS = { padding: "6px 8px", verticalAlign: "middle", borderTop: "1px solid #f0f0f0", background: isAlt ? "#fafafa" : "#fff" };
+                  const inS = { fontSize: 13, padding: "5px 8px", borderRadius: 5, border: "1px solid #e0e0e0", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+                  return /*#__PURE__*/React.createElement("tr", { key: eng._i },
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("input", { type: "date", value: eng.targetDate || "", onChange: e => updEng(eng._i, "targetDate", e.target.value), style: { ...inS, fontSize: 12 } })
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("input", { value: eng.contact || "", onChange: e => updEng(eng._i, "contact", e.target.value), placeholder: "Name...", style: inS })
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("input", { value: eng.org || "", onChange: e => updEng(eng._i, "org", e.target.value), placeholder: "Agency / Org...", style: inS })
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("select", { value: eng.type || "Meeting", onChange: e => updEng(eng._i, "type", e.target.value), style: { ...inS, cursor: "pointer" } },
+                        ENG_TYPES.map(t => /*#__PURE__*/React.createElement("option", { key: t, value: t }, t))
+                      )
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("select", { value: eng.status || "Planned", onChange: e => updEng(eng._i, "status", e.target.value), style: { ...inS, background: c.bg, color: c.text, fontWeight: 700, border: "1px solid " + c.border, cursor: "pointer" } },
+                        Object.keys(ENG_STATUS).map(s => /*#__PURE__*/React.createElement("option", { key: s, value: s }, s))
+                      )
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("input", { value: eng.purpose || "", onChange: e => updEng(eng._i, "purpose", e.target.value), placeholder: "Objective...", style: inS })
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("input", { value: eng.notes || "", onChange: e => updEng(eng._i, "notes", e.target.value), placeholder: "Outcome / follow-up...", style: inS })
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS },
+                      /*#__PURE__*/React.createElement("select", { value: eng.owner || "", onChange: e => updEng(eng._i, "owner", e.target.value), style: { ...inS, cursor: "pointer" } },
+                        /*#__PURE__*/React.createElement("option", { value: "" }, "-- Assign --"),
+                        (roster || []).map(r => { const n = typeof r === "string" ? r : r.name; return /*#__PURE__*/React.createElement("option", { key: n, value: n }, n); })
+                      )
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: { ...tdS, textAlign: "center" } },
+                      /*#__PURE__*/React.createElement("button", { onClick: () => delEng(eng._i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
+                    )
+                  );
+                })
+              )
+            )
           ),
       /*#__PURE__*/React.createElement("button", { onClick: addEngagement, style: { marginTop: 14, padding: "6px 16px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Engagement")
     ),
