@@ -3549,7 +3549,7 @@ function StaffingTab({ data, setData }) {
                 staff.map((row, i) => {
                   const isVacant = !row.name || row.name.trim().toUpperCase() === "VACANT";
                   const lvlC = LEVEL_COLORS[row.level] || {};
-                  const coC = COMPANY_COLORS[row.company] || COMPANY_COLORS["Other"];
+                  const coC = getCompanyColor(row.company);
                   return CE("tr", { key: row.id || i, style: { borderBottom: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" } },
                     CE("td", { style: { padding: "6px 8px", textAlign: "center", color: "#999", fontWeight: 700, fontSize: 11 } }, i + 1),
                     CE("td", { style: { padding: "6px 8px", textAlign: "center" } },
