@@ -939,7 +939,11 @@ function Dashboard({
 }) {
   const [showArchived, setShowArchived] = useState(false);
   const importRef = useRef(null);
-  const active = pursuits.filter(p => !p.archived);
+  const active = pursuits.filter(p => !p.archived).sort((a, b) => {
+    const da = a.meta.rfpRelease ? new Date(a.meta.rfpRelease) : new Date("9999-12-31");
+    const db = b.meta.rfpRelease ? new Date(b.meta.rfpRelease) : new Date("9999-12-31");
+    return da - db;
+  });
   const archived = pursuits.filter(p => p.archived);
   const totalValue = active.reduce((sum, p) => {
     const v = parseFloat((p.meta.estimatedValue || "").replace(/[$,M]/g, ""));
