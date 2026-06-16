@@ -939,12 +939,13 @@ function Dashboard({
 }) {
   const [showArchived, setShowArchived] = useState(false);
   const importRef = useRef(null);
-  const active = pursuits.filter(p => !p.archived).sort((a, b) => {
+  const active = pursuits.filter(p => !p.archived && !p.submitted).sort((a, b) => {
     const da = a.meta.rfpRelease ? new Date(a.meta.rfpRelease) : new Date("9999-12-31");
     const db = b.meta.rfpRelease ? new Date(b.meta.rfpRelease) : new Date("9999-12-31");
     return da - db;
   });
-  const archived = pursuits.filter(p => p.archived);
+  const submitted = pursuits.filter(p => p.submitted && !p.archived);
+  const archived = pursuits.filter(p => p.archived && !p.submitted);
   const totalValue = active.reduce((sum, p) => {
     const v = parseFloat((p.meta.estimatedValue || "").replace(/[$,M]/g, ""));
     return sum + (isNaN(v) ? 0 : v * ((p.meta.estimatedValue || "").includes("M") ? 1000000 : 1));
