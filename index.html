@@ -3570,8 +3570,16 @@ function StaffingTab({ data, setData }) {
                       })
                     ),
                     CE("td", { style: { padding: "4px 6px" } },
-                      CE("select", { value: row.company || "D&G", onChange: e => upd(i, "company", e.target.value), style: sel({ background: coC.bg, color: coC.text, fontWeight: 700, border: "1px solid " + coC.bg }) },
-                        COMPANIES.map(c => CE("option", { key: c, value: c }, c))
+                      CE("span", { style: { position: "relative", display: "block" } },
+                        CE("input", {
+                          list: "company-list",
+                          value: row.company || "D&G",
+                          onChange: e => upd(i, "company", e.target.value),
+                          style: inp({ background: coC.bg, color: coC.text, fontWeight: 700, border: "1px solid " + coC.bg, width: 110 })
+                        }),
+                        CE("datalist", { id: "company-list" },
+                          COMPANIES.map(c => CE("option", { key: c, value: c }))
+                        )
                       )
                     ),
                     CE("td", { style: { padding: "4px 6px" } },
