@@ -1243,16 +1243,10 @@ function PursuitCard({
       color: isArchived ? "#888" : NAVY
     }
   }, p.meta.opportunityName || "Untitled Pursuit"), isArchived && /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      padding: "2px 8px",
-      borderRadius: 10,
-      background: "#f1f1f1",
-      color: "#888",
-      border: "1px solid #e0e0e0"
-    }
-  }, "No Bid"), p.meta.pursuitPhase && /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: "#f1f1f1", color: "#888", border: "1px solid #e0e0e0" }
+  }, "No Bid"), isSubmitted && /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: "#e0f2f1", color: "#00695c", border: "1px solid #b2dfdb" }
+  }, "Submitted"), p.meta.pursuitPhase && /*#__PURE__*/React.createElement("span", {
     style: (() => {
       const ph = p.meta.pursuitPhase;
       const map = {
