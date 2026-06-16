@@ -1552,11 +1552,19 @@ function MetaTab({
     label: "NAICS",
     value: m.naics,
     onChange: v => u("naics", v)
-  }), /*#__PURE__*/React.createElement(FInput, {
-    label: "Estimated Value ($)",
-    value: m.estimatedValue,
-    onChange: v => u("estimatedValue", v)
-  }), /*#__PURE__*/React.createElement(FInput, {
+  }), /*#__PURE__*/React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 3 } },
+    /*#__PURE__*/React.createElement(Lbl, null, "Estimated Value"),
+    /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", border: "1px solid #d0d5dd", borderRadius: 6, overflow: "hidden", background: "#fff" } },
+      /*#__PURE__*/React.createElement("span", { style: { padding: "7px 10px", background: "#f4f6f9", color: "#555", fontSize: 13, fontWeight: 600, borderRight: "1px solid #d0d5dd", userSelect: "none" } }, "$"),
+      /*#__PURE__*/React.createElement("input", {
+        type: "text",
+        value: m.estimatedValue,
+        onChange: e => u("estimatedValue", e.target.value),
+        placeholder: "e.g. 3,750,000",
+        style: { flex: 1, padding: "7px 10px", fontSize: 13, border: "none", outline: "none", fontFamily: "inherit", color: "#1a1a1a" }
+      })
+    )
+  ), /*#__PURE__*/React.createElement(FInput, {
     label: "Est. RFP Release",
     value: m.rfpRelease || "",
     onChange: v => u("rfpRelease", v),
