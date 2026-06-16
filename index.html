@@ -6170,27 +6170,19 @@ function App() {
         { id: 7, positionTitle: "Inventory Management Specialist", keyPersonnel: false, name: "Sheila Rowan", company: "Other", level: "Senior", yrsExperience: "8", education: "", certification: "Secret Clearance", salary: "", dutyDescription: "MacaLogic – Signed LOI" }
       ],
       pricing: {
+        ..._base.pricing,
         incumbent: "TM Capture Services (dba Macalogic)",
         contractNumber: "47QRAA19D001Z",
         totalValue: "7665012",
         totalObligated: "7665012",
-        popStart: "2022-09-30",
-        popEnd: "2025-09-30",
         estimatedFtes: "15",
         targetPct: "-5",
-        baseYear: "2489724",
-        oy1: "2554416",
-        oy2: "2620872",
         fpdsData: [
           { contractId: "FA853822F0122", mod: "0", obligation: "2489724", dateSigned: "2022-09-30", contractYear: "Base", comments: "" },
           { contractId: "FA853822F0122", mod: "2", obligation: "2554416", dateSigned: "2023-06-08", contractYear: "OY1", comments: "" },
           { contractId: "FA853822F0122", mod: "3", obligation: "2620872", dateSigned: "2024-06-12", contractYear: "OY2", comments: "" }
         ]
-      },
-      pwin: { scores: {}, customWeights: {}, notes: "" },
-      solution: { contractIntel: {}, strengths: [], gaps: [], statements: [] },
-      meetingNotes: [],
-      actionItems: { open: [], completed: [] }
+      }
     };
     const saved = lsGet(STORAGE_KEY);
     if (saved && Array.isArray(saved)) {
