@@ -3487,7 +3487,8 @@ function StaffingTab({ data, setData }) {
     return { ...p, staffingPlan: a };
   });
 
-  const COMPANY_COLORS = { "D&G": { bg: "#e8f0fe", text: "#1a56db" }, "GH": { bg: "#fef3c7", text: "#92400e" }, "LMI": { bg: "#ede9fe", text: "#6d28d9" }, "UNCOMN": { bg: "#d1fae5", text: "#065f46" }, "D&G 1099": { bg: "#fee2e2", text: "#991b1b" }, "Other": { bg: "#f3f4f6", text: "#374151" } };
+  const COMPANY_COLORS = { "D&G": { bg: "#e8f0fe", text: "#1a56db" }, "GH": { bg: "#fef3c7", text: "#92400e" }, "LMI": { bg: "#ede9fe", text: "#6d28d9" }, "UNCOMN": { bg: "#d1fae5", text: "#065f46" }, "D&G 1099": { bg: "#fee2e2", text: "#991b1b" } };
+  const getCompanyColor = (co) => COMPANY_COLORS[co] || { bg: "#f3f4f6", text: "#374151" };
   const LEVEL_COLORS = { "Junior": { bg: "#e0f2fe", text: "#0369a1" }, "Journeyman": { bg: "#fef9c3", text: "#854d0e" }, "Senior": { bg: "#f0fdf4", text: "#15803d" }, "SME": { bg: "#fdf2f8", text: "#86198f" } };
 
   const inp = (extra) => ({ fontSize: 12, padding: "5px 7px", borderRadius: 5, border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a", fontFamily: "inherit", width: "100%", boxSizing: "border-box", ...extra });
