@@ -6184,14 +6184,21 @@ function App() {
         ]
       }
     };
-    const saved = lsGet(STORAGE_KEY);
-    if (saved && Array.isArray(saved)) {
-      const alreadySeeded = saved.some(p => p.id === SEED_ID);
-      setPursuits(alreadySeeded ? saved : [seed638, ...saved]);
-      if (!alreadySeeded) lsSet(STORAGE_KEY, [seed638, ...saved]);
-    } else {
-      setPursuits([seed638]);
+    try {
+      const saved = lsGet(STORAGE_KEY);
+      if (saved && Array.isArray(saved)) {
+        const alreadySeeded = saved.some(p => p.id === SEED_ID);
+        const merged = alreadySeeded ? saved : [seed638, ...saved];
+        setPursuits(merged);
+        if (!alreadySeeded) lsSet(STORAGE_KEY, merged);
+      } else {
+        setPursuits([seed638]);
+        lsSet(STORAGE_KEY, [seed638]);
+      }
+    } catch(e) {
+      console.error("Error loading pursuits, resetting:", e);
       lsSet(STORAGE_KEY, [seed638]);
+      setPursuits([seed638]);
     }
     const savedRoster = lsGet(ROSTER_KEY);
     if (savedRoster && Array.isArray(savedRoster)) {
