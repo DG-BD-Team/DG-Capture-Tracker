@@ -6058,6 +6058,35 @@ function PursuitView({
   }, PAGES[activeTab]));
 }
 
+// ── ERROR BOUNDARY ─────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(e) { return { hasError: true, error: e }; }
+  componentDidCatch(e, info) { console.error("App crashed:", e, info); }
+  clearAndReload() {
+    try { localStorage.removeItem("dg_capture_pursuits_v1"); } catch(e) {}
+    window.location.reload();
+  }
+  render() {
+    if (!this.state.hasError) return this.props.children;
+    return React.createElement("div", { style: { fontFamily: "sans-serif", padding: 48, textAlign: "center", color: "#333" } },
+      React.createElement("div", { style: { fontSize: 48, marginBottom: 16 } }, "⚠️"),
+      React.createElement("h2", { style: { color: "#c0392b", marginBottom: 8 } }, "Something went wrong"),
+      React.createElement("p", { style: { color: "#666", marginBottom: 4 } }, "The app encountered an error. Your data may be corrupted."),
+      React.createElement("p", { style: { color: "#999", fontSize: 12, marginBottom: 24, fontFamily: "monospace" } },
+        this.state.error ? this.state.error.message : "Unknown error"),
+      React.createElement("button", {
+        onClick: () => this.clearAndReload(),
+        style: { background: "#c0392b", color: "#fff", border: "none", borderRadius: 6, padding: "12px 28px", fontSize: 15, cursor: "pointer", marginRight: 12 }
+      }, "Clear Data & Reload"),
+      React.createElement("button", {
+        onClick: () => this.setState({ hasError: false }),
+        style: { background: "#eee", color: "#333", border: "none", borderRadius: 6, padding: "12px 28px", fontSize: 15, cursor: "pointer" }
+      }, "Try Again")
+    );
+  }
+}
+
 // ── ROOT APP ──────────────────────────────────────────────────────
 function App() {
   const [pursuits, setPursuits] = useState([]);
