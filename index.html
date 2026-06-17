@@ -3611,11 +3611,6 @@ function StaffingTab({ data, setData }) {
                         )
                       )
                     ),
-                    CE("td", { style: { padding: "4px 6px" } },
-                      CE("select", { value: row.level || "", onChange: e => upd(i, "level", e.target.value), style: sel(lvlC.bg ? { background: lvlC.bg, color: lvlC.text, fontWeight: 600 } : {}) },
-                        LEVELS.map(l => CE("option", { key: l, value: l }, l || "-- Level --"))
-                      )
-                    ),
                     CE("td", { style: { padding: "4px 6px" } }, CE("input", { type: "number", min: 0, value: row.yrsExperience || "", onChange: e => upd(i, "yrsExperience", e.target.value), placeholder: "0", style: inp({ textAlign: "center" }) })),
                     CE("td", { style: { padding: "4px 6px" } },
                       CE("select", { value: row.education || "", onChange: e => upd(i, "education", e.target.value), style: sel() },
