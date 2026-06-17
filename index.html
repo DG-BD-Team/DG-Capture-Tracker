@@ -2409,7 +2409,7 @@ function CapMatrixTab({
     a[i] = { ...a[i], subTasks: subs };
     u("taskAreas", a);
   };
-  const [expandedTA, setExpandedTA] = useState({});
+  const [expandedTA, setExpandedTA] = React.useState({});
   const DEFAULT_TASK_AREAS = [
     { id: 0, label: "Task Area 1", description: "", experience: "", subTasks: [] },
     { id: 1, label: "Task Area 2", description: "", experience: "", subTasks: [] },
