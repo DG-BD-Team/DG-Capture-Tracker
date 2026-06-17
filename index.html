@@ -2386,16 +2386,34 @@ function CapMatrixTab({
   }));
   const updTA = (i, f, v) => {
     const a = [...data.capMatrix.taskAreas];
-    a[i] = {
-      ...a[i],
-      [f]: v
-    };
+    a[i] = { ...a[i], [f]: v };
     u("taskAreas", a);
   };
+  const addSubTask = (i) => {
+    const a = [...data.capMatrix.taskAreas];
+    const subs = [...(a[i].subTasks || [])];
+    subs.push({ id: Date.now(), label: "", description: "" });
+    a[i] = { ...a[i], subTasks: subs };
+    u("taskAreas", a);
+  };
+  const updSubTask = (i, j, f, v) => {
+    const a = [...data.capMatrix.taskAreas];
+    const subs = [...(a[i].subTasks || [])];
+    subs[j] = { ...subs[j], [f]: v };
+    a[i] = { ...a[i], subTasks: subs };
+    u("taskAreas", a);
+  };
+  const delSubTask = (i, j) => {
+    const a = [...data.capMatrix.taskAreas];
+    const subs = (a[i].subTasks || []).filter((_, k) => k !== j);
+    a[i] = { ...a[i], subTasks: subs };
+    u("taskAreas", a);
+  };
+  const [expandedTA, setExpandedTA] = useState({});
   const DEFAULT_TASK_AREAS = [
-    { id: 0, label: "Task Area 1", description: "", experience: "" },
-    { id: 1, label: "Task Area 2", description: "", experience: "" },
-    { id: 2, label: "Task Area 3", description: "", experience: "" }
+    { id: 0, label: "Task Area 1", description: "", experience: "", subTasks: [] },
+    { id: 1, label: "Task Area 2", description: "", experience: "", subTasks: [] },
+    { id: 2, label: "Task Area 3", description: "", experience: "", subTasks: [] }
   ];
   const rawTA = data.capMatrix && data.capMatrix.taskAreas;
   const allBlank = rawTA && rawTA.every(ta => !ta.description && !ta.experience && ta.label === ("Task Area " + (ta.id + 1)));
