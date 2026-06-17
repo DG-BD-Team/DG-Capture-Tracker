@@ -1570,7 +1570,10 @@ function MetaTab({
         placeholder: "e.g. 3,750,000",
         style: { flex: 1, padding: "7px 10px", fontSize: 13, border: "none", outline: "none", fontFamily: "inherit", color: "#1a1a1a" }
       })
-    )
+    ),
+    fmtCurrency(m.estimatedValue) && /*#__PURE__*/React.createElement("div", {
+      style: { fontSize: 11, color: "#16a34a", fontWeight: 700, marginTop: 2 }
+    }, fmtCurrency(m.estimatedValue))
   ), /*#__PURE__*/React.createElement(FInput, {
     label: "Est. RFP Release",
     value: m.rfpRelease || "",
