@@ -2731,62 +2731,57 @@ function CapMatrixTab({
       fontWeight: 700,
       width: "16%"
     }
-  }, "D&G Experience"))), /*#__PURE__*/React.createElement("tbody", null, cm.taskAreas.map((ta, i) => /*#__PURE__*/React.createElement("tr", {
-    key: ta.id,
-    style: {
-      borderTop: "1px solid #eee",
-      background: i % 2 === 0 ? "transparent" : "#fafafa"
+  }, "D&G Experience"))), /*#__PURE__*/React.createElement("tbody", null, cm.taskAreas.flatMap((ta, i) => {
+    const CE = React.createElement;
+    const isExp = !!expandedTA[i];
+    const subs = ta.subTasks || [];
+    const inpS = { width: "100%", fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: "#fff", color: "#1a1a1a", fontFamily: "inherit" };
+    const rows = [];
+    rows.push(CE("tr", { key: `ta-${ta.id}`, style: { borderTop: "1px solid #eee", background: i % 2 === 0 ? "transparent" : "#fafafa" } },
+      CE("td", { style: { padding: "8px 14px" } },
+        CE("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+          CE("button", { onClick: () => setExpandedTA(s => ({ ...s, [i]: !s[i] })), title: isExp ? "Collapse" : "Expand sub-tasks", style: { background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "#888", padding: "0 2px", lineHeight: 1 } }, isExp ? "▼" : "▶"),
+          CE("input", { value: ta.label, onChange: e => updTA(i, "label", e.target.value), style: { ...inpS, fontWeight: 700 } })
+        )
+      ),
+      CE("td", { style: { padding: "8px 14px" } },
+        CE("input", { value: ta.description, onChange: e => updTA(i, "description", e.target.value), placeholder: "Description...", style: inpS })
+      ),
+      CE("td", { style: { padding: "8px 14px", textAlign: "center" } },
+        CE("select", { value: ta.experience, onChange: e => updTA(i, "experience", e.target.value), style: es(ta.experience) },
+          ["", "High", "Medium", "Low"].map(o => CE("option", { key: o, value: o }, o || "—"))
+        )
+      )
+    ));
+    if (isExp) {
+      subs.forEach((st, j) => {
+        rows.push(CE("tr", { key: `st-${ta.id}-${st.id}`, style: { background: "#f5f7ff", borderTop: "1px solid #e8eaed" } },
+          CE("td", { style: { padding: "6px 14px 6px 44px" } },
+            CE("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+              CE("span", { style: { fontSize: 11, color: ORANGE, fontWeight: 700, minWidth: 28 } }, `${i+1}.${j+1}`),
+              CE("input", { value: st.label || "", onChange: e => updSubTask(i, j, "label", e.target.value), placeholder: "Sub-task name...", style: { ...inpS, fontWeight: 600 } })
+            )
+          ),
+          CE("td", { style: { padding: "6px 14px" } },
+            CE("textarea", { value: st.description || "", onChange: e => updSubTask(i, j, "description", e.target.value), rows: 2, placeholder: "Description...", style: { ...inpS, resize: "vertical", lineHeight: 1.5 } })
+          ),
+          CE("td", { style: { padding: "6px 14px", textAlign: "center" } },
+            CE("button", { onClick: () => delSubTask(i, j), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
+          )
+        ));
+      });
+      rows.push(CE("tr", { key: `add-${ta.id}` },
+        CE("td", { colSpan: 3, style: { padding: "6px 14px 8px 44px", borderTop: "1px dashed #ddd", background: "#f5f7ff" } },
+          CE("button", { onClick: () => addSubTask(i), style: { fontSize: 11, fontWeight: 700, color: ORANGE, background: "none", border: `1px solid ${ORANGE}`, borderRadius: 5, padding: "3px 10px", cursor: "pointer" } }, "+ Add Sub-task")
+        )
+      ));
     }
-  }, /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "8px 14px"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: ta.label,
-    onChange: e => updTA(i, "label", e.target.value),
-    style: {
-      width: "100%",
-      fontSize: 12,
-      padding: "4px 6px",
-      borderRadius: 4,
-      border: "1px solid #ddd",
-      background: "#fff",
-      color: "#1a1a1a",
-      fontWeight: 700
-    }
-  })), /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "8px 14px"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: ta.description,
-    onChange: e => updTA(i, "description", e.target.value),
-    placeholder: "Description...",
-    style: {
-      width: "100%",
-      fontSize: 12,
-      padding: "4px 6px",
-      borderRadius: 4,
-      border: "1px solid #ddd",
-      background: "#fff",
-      color: "#1a1a1a"
-    }
-  })), /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "8px 14px",
-      textAlign: "center"
-    }
-  }, /*#__PURE__*/React.createElement("select", {
-    value: ta.experience,
-    onChange: e => updTA(i, "experience", e.target.value),
-    style: es(ta.experience)
-  }, ["", "High", "Medium", "Low"].map(o => /*#__PURE__*/React.createElement("option", {
-    key: o,
-    value: o
-  }, o || "—"))))))))), /*#__PURE__*/React.createElement("button", {
+    return rows;
+  }))), /*#__PURE__*/React.createElement("button", {
     onClick: () => u("taskAreas", [...cm.taskAreas, {
       id: cm.taskAreas.length,
       label: `Task Area ${cm.taskAreas.length + 1}`,
+      subTasks: []
       description: "",
       experience: ""
     }]),
