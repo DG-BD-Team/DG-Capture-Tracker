@@ -3365,11 +3365,13 @@ function PricingTab({
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Total Contract Value ($)",
     value: pr.totalValue,
-    onChange: v => u("totalValue", v)
+    onChange: v => u("totalValue", v),
+    currency: true
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Total Obligated ($)",
     value: pr.totalObligated,
-    onChange: v => u("totalObligated", v)
+    onChange: v => u("totalObligated", v),
+    currency: true
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "PoP Start",
     value: data.meta.popStart,
