@@ -3623,7 +3623,11 @@ function StaffingTab({ data, setData }) {
                         EDUCATION.map(e => CE("option", { key: e, value: e }, e || "-- Education --"))
                       )
                     ),
-                    CE("td", { style: { padding: "4px 6px" } }, CE("input", { value: row.certification || "", onChange: e => upd(i, "certification", e.target.value), placeholder: "e.g. PMP, AWS...", style: inp() })),
+                    CE("td", { style: { padding: "4px 6px" } },
+                      CE("select", { value: row.certification || "", onChange: e => upd(i, "certification", e.target.value), style: sel() },
+                        ["", "NACI", "Secret", "Top Secret"].map(c => CE("option", { key: c, value: c }, c || "-- Clearance --"))
+                      )
+                    ),
                     CE("td", { style: { padding: "4px 6px" } }, CE("input", { value: row.salary || "", onChange: e => upd(i, "salary", e.target.value), placeholder: "$0,000", style: inp() })),
                     CE("td", { style: { padding: "4px 6px", textAlign: "center" } },
                       CE("button", { onClick: () => delRow(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
