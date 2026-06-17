@@ -3543,7 +3543,7 @@ function StaffingTab({ data, setData }) {
           CE("span", { style: { fontSize: 12, color: "#991b1b" } }, "Vacant")
         ),
         ...Object.entries(byCompany).map(([co, cnt]) => {
-          const c = COMPANY_COLORS[co] || COMPANY_COLORS["Other"];
+          const c = COMPANY_COLORS[co] || { bg: "#f3f4f6", text: "#374151" };
           return CE("div", { key: co, style: { padding: "8px 16px", borderRadius: 8, background: c.bg, border: "1px solid " + c.bg, display: "flex", gap: 8, alignItems: "center" } },
             CE("span", { style: { fontSize: 18, fontWeight: 700, color: c.text } }, cnt),
             CE("span", { style: { fontSize: 12, color: c.text } }, co)
