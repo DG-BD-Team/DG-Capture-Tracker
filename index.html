@@ -634,6 +634,16 @@ function Lbl({
     }
   }, children);
 }
+function fmtCurrency(v) {
+  const s = String(v || "").trim().replace(/,/g, "");
+  if (!s) return null;
+  const n = parseFloat(s.replace(/[$]/g, ""));
+  if (isNaN(n) || n === 0) return null;
+  if (/m/i.test(s)) return "$" + Math.round(n * 1000000).toLocaleString();
+  if (/b/i.test(s)) return "$" + Math.round(n * 1000000000).toLocaleString();
+  if (Math.abs(n) < 1 && s.includes(".")) return null;
+  return "$" + Math.round(n).toLocaleString();
+}
 function FInput({
   label,
   value,
@@ -641,7 +651,8 @@ function FInput({
   type = "text",
   options,
   placeholder = "",
-  wide = false
+  wide = false,
+  currency = false
 }) {
   const base = {
     width: "100%",
