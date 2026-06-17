@@ -6217,18 +6217,66 @@ function App() {
       };
       const saved = lsGet(STORAGE_KEY);
       if (saved && Array.isArray(saved)) {
-        const alreadySeeded = saved.some(p => p.id === SEED_ID);
+      // Additional seeds from Jun 16 backup
+      const _b2 = blankPursuit("pursuit_gbf");
+      const seedGBF = { ..._b2, id: "pursuit_gbf", createdAt: "2026-06-16T16:16:25.571Z", updatedAt: "2026-06-16T17:08:33.610Z",
+        meta: { ..._b2.meta, opportunityName: "USTC Global Bulk Fuel Management & Delivery", customer: "USTC/J54", contractVehicle: "GSA MAS", setAside: "Unrestricted", naics: "541611", popStart: "2027-10-01", popEnd: "2032-09-30", estimatedValue: "35000000", rfpRelease: "2027-03-01", role: "Prime", incumbentName: "D&G Solutions", deliveryLead: "Cami Mercado", captureManager: "Greg Beaulieu", functionalSME: "Trevor Morden" },
+        callPlan: { ..._b2.callPlan,
+          govStaff: [
+            { Name: "Rachel Bias", Title: "COR", Org: "J54", "Yrs at Agency": "2", "Reachout POC": "Trevor Morden", "Purpose/Objective": "Shape PWS" },
+            { Name: "Amy Miller", Title: "KO", Org: "ACQ", "Purpose/Objective": "Shape Acquisition Strategy" },
+            { Name: "Tarina Folsom", Title: "KO", Org: "ACQ" },
+            { Name: "CAPT Chris Radke", Title: "J54 Div Chief", Org: "J54", "Yrs at Agency": "1", "Reachout POC": "Trevor Morden", "Purpose/Objective": "Shape PWS and Acquisition Strategy" },
+            { Name: "RADM Chris Stone", Title: "Director", Org: "J547", "Reachout POC": "Marty Chapin" },
+            { Name: "LTG Jared Helwig", Title: "DCOM", Org: "USTC", "Reachout POC": "GEN JVO" },
+            { Name: "Jack Moreau", Title: "Deputy Director", Org: "J547" },
+            { Name: "Jill Muskopf", Title: "Div Chief", Org: "ACQ", "Reachout POC": "Leah Sanders", "Purpose/Objective": "Shape Acquisition Strategy", "Last Contact": "05/15/2026" }
+          ],
+          engagementTimeline: [
+            { id: 1, contact: "CAPT Chris Radke", org: "USTC/J5/4", type: "Meeting", targetDate: "2026-12-01", purpose: "To hold solution session to validate 3-5 year solution (butts in seat to solution based outcome model), validate change in staffing solution (36x -->32x FTEs)", status: "Planned", owner: "Cami Mercado", notes: "" },
+            { id: 2, contact: "Amy Miller", org: "USTC/ACQ", type: "Meeting", targetDate: "2026-08-01", purpose: "To meet with KO discuss acquisition strategy to include orals presentation and key personnel requirements", status: "Planned", owner: "Trevor Morden", notes: "" },
+            { id: 3, contact: "Rachel Bias", org: "USTC/J54", type: "Meeting", targetDate: "2026-07-01", purpose: "To discuss GBF way-ahead and identify any customer concerns", status: "Planned", owner: "Trevor Morden", notes: "" },
+            { id: 4, contact: "LTG Helwig", org: "USTC/DCOM", type: "Meeting", targetDate: "2026-07-01", purpose: "JVO discuss GBF desired outcomes during USTC senior staff talks", status: "Planned", owner: "", notes: "" },
+            { id: 5, contact: "RADM Chris Stone", org: "USTC/J5/4/7", type: "Meeting", targetDate: "2026-09-01", purpose: "Marty discuss progress with GBF and Contested Logistics and how D&G should look at these requirements over the next 3-5 years", status: "Planned", owner: "", notes: "" },
+            { id: 6, contact: "CAPT Chris Radke", org: "USTC/J54", type: "Meeting", targetDate: "2026-09-01", purpose: "Introductory office visit with CAPT Radke, welcome him onboard and garner any initial insights, his vision for GBF recompete", status: "Planned", owner: "Leah Sanders", notes: "" }
+          ]
+        }
+      };
+      const _b3 = blankPursuit("pursuit_ustc_cmkm");
+      const seedCMKM = { ..._b3, id: "pursuit_ustc_cmkm", createdAt: "2026-06-16T16:24:07.281Z", updatedAt: "2026-06-16T16:39:24.621Z",
+        meta: { ..._b3.meta, opportunityName: "USTC CM/KM", customer: "USTC/CoS", contractVehicle: "GSA MAS", setAside: "Unrestricted", naics: "541611", popStart: "2027-10-01", popEnd: "2032-09-30", estimatedValue: "13000000", rfpRelease: "2027-03-01", role: "Prime", incumbentName: "Guidehouse", deliveryLead: "Cami Mercado", captureManager: "Greg Beaulieu", pursuitPhase: "Capture" }
+      };
+      const _b4 = blankPursuit("pursuit_ustc_munitions");
+      const seedMunitions = { ..._b4, id: "pursuit_ustc_munitions", createdAt: "2026-06-16T16:23:11.367Z", updatedAt: "2026-06-16T16:41:27.056Z",
+        meta: { ..._b4.meta, opportunityName: "USTC Munitions", customer: "USTC/J54", naics: "541614", popStart: "2026-09-01", popEnd: "2028-09-30", estimatedValue: "5000000", rfpRelease: "2026-07-01", role: "Prime", deliveryLead: "Cami Mercado", captureManager: "Greg Beaulieu", functionalSME: "Dr. Mike Lee", pursuitPhase: "Qualification" }
+      };
+      const _b5 = blankPursuit("pursuit_ustc_multimodal");
+      const seedMultimodal = { ..._b5, id: "pursuit_ustc_multimodal", createdAt: "2026-06-16T16:23:36.754Z", updatedAt: "2026-06-16T16:23:58.746Z",
+        meta: { ..._b5.meta, opportunityName: "USTC Multimodal Assessment Support", customer: "USTC", role: "Prime" }
+      };
+      const _b6 = blankPursuit("pursuit_ustc_smscms");
+      const seedSMSCMS = { ..._b6, id: "pursuit_ustc_smscms", createdAt: "2026-06-16T16:22:50.321Z", updatedAt: "2026-06-16T16:23:08.314Z",
+        meta: { ..._b6.meta, opportunityName: "USTC SMS/CMS", customer: "USTC", contractVehicle: "GSA MAS", setAside: "SDVOSB", role: "Prime" }
+      };
+      const _b7 = blankPursuit("pursuit_usaf_gates");
+      const seedGATES = { ..._b7, id: "pursuit_usaf_gates", createdAt: "2026-06-16T16:21:54.047Z", updatedAt: "2026-06-16T16:22:46.389Z",
+        meta: { ..._b7.meta, opportunityName: "USAF GATES", customer: "USAF / Air Mobility Command", contractVehicle: "ALLIANT", setAside: "Unrestricted", role: "Prime" }
+      };
+      const ALL_SEEDS = [seed638, seedGBF, seedCMKM, seedMunitions, seedMultimodal, seedSMSCMS, seedGATES];
+      const SEED_IDS = ALL_SEEDS.map(s => s.id);
+
+        const alreadySeeded = saved && Array.isArray(saved) && SEED_IDS.every(sid => saved.some(p => p.id === sid));
         if (alreadySeeded) {
           setPursuits(saved);
-        } else {
-          const merged = [seed638, ...saved];
+        } else if (saved && Array.isArray(saved) && saved.length > 0) {
+          const existing = saved.filter(p => !SEED_IDS.includes(p.id));
+          const merged = [...ALL_SEEDS, ...existing];
           setPursuits(merged);
           lsSet(STORAGE_KEY, merged);
+        } else {
+          setPursuits(ALL_SEEDS);
+          lsSet(STORAGE_KEY, ALL_SEEDS);
         }
-      } else {
-        setPursuits([seed638]);
-        lsSet(STORAGE_KEY, [seed638]);
-      }
     } catch(e) {
       console.error("Error loading pursuits:", e);
       lsSet(STORAGE_KEY, []);
