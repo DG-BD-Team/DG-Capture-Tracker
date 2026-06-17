@@ -6016,34 +6016,7 @@ function PursuitView({
       fontSize: 13
     },
     "aria-hidden": "true"
-  }), "Delete")) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      if (window.confirm(`Move "${data.meta.opportunityName || "this pursuit"}" to No-Bid archive?`)) {
-        handleSave();
-        onArchive(data.id);
-        onBack();
-      }
-    },
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 5,
-      padding: "6px 12px",
-      fontSize: 12,
-      fontWeight: 700,
-      borderRadius: 6,
-      border: "2px solid #f4b8b8",
-      background: "transparent",
-      color: "#ffaaaa",
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("i", {
-    className: "ti ti-ban",
-    style: {
-      fontSize: 13
-    },
-    "aria-hidden": "true"
-  }), "No Bid"), /*#__PURE__*/React.createElement("button", {
+  }), "Delete")) : null, /*#__PURE__*/React.createElement("button", {
     onClick: handleSave,
     style: {
       padding: "6px 16px",
