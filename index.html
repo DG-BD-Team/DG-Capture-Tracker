@@ -2435,7 +2435,8 @@ function CapMatrixTab({
         id: i,
         label: String(ta.label || ta.name || `Task Area ${i + 1}`).trim(),
         description: String(ta.description || ta.desc || "").trim(),
-        experience: ["High", "Medium", "Low"].includes(ta.experience || ta.rating || "") ? ta.experience || ta.rating : ""
+        experience: ["High", "Medium", "Low"].includes(ta.experience || ta.rating || "") ? ta.experience || ta.rating : "",
+        subTasks: []
       }));
       if (parsed.contractTitle) u("contractTitle", parsed.contractTitle);
       if (parsed.contractNumber) u("contractNumber", parsed.contractNumber);
