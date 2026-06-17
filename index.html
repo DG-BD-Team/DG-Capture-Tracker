@@ -2930,7 +2930,8 @@ function IncumbentTab({
     value: data.incumbent[w][f.key],
     onChange: v => upd(w, f.key, v),
     type: f.type || "text",
-    options: f.options
+    options: f.options,
+    currency: !!f.currency
   }))))));
 }
 function CallPlanTab({
