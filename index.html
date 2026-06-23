@@ -3166,10 +3166,16 @@ function CallPlanTab({
                       )
                     ),
                     /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("input", { value: eng.purpose || "", onChange: e => updEng(eng._i, "purpose", e.target.value), placeholder: "Objective...", style: inS })
+                      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4 } },
+                        /*#__PURE__*/React.createElement("textarea", { value: eng.purpose || "", onChange: e => updEng(eng._i, "purpose", e.target.value), rows: 2, placeholder: "Objective...", style: { ...inS, resize: "vertical", lineHeight: 1.4 } }),
+                        /*#__PURE__*/React.createElement("button", { onClick: () => setEditEng({ i: eng._i, field: "purpose", label: "Purpose / Objective" }), title: "Expand", style: { flexShrink: 0, width: 26, height: 26, borderRadius: 4, border: "1px solid #d0d5dd", background: "#f5f6fa", color: "#666", cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "⛶")
+                      )
                     ),
                     /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("input", { value: eng.notes || "", onChange: e => updEng(eng._i, "notes", e.target.value), placeholder: "Outcome / follow-up...", style: inS })
+                      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4 } },
+                        /*#__PURE__*/React.createElement("textarea", { value: eng.notes || "", onChange: e => updEng(eng._i, "notes", e.target.value), rows: 2, placeholder: "Outcome / follow-up...", style: { ...inS, resize: "vertical", lineHeight: 1.4 } }),
+                        /*#__PURE__*/React.createElement("button", { onClick: () => setEditEng({ i: eng._i, field: "notes", label: "Outcome / Notes" }), title: "Expand", style: { flexShrink: 0, width: 26, height: 26, borderRadius: 4, border: "1px solid #d0d5dd", background: "#f5f6fa", color: "#666", cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "⛶")
+                      )
                     ),
                     /*#__PURE__*/React.createElement("td", { style: tdS },
                       /*#__PURE__*/React.createElement("select", { value: eng.owner || "", onChange: e => updEng(eng._i, "owner", e.target.value), style: { ...inS, cursor: "pointer" } },
