@@ -3621,13 +3621,9 @@ function PricingTab({
     style: {
       padding: "6px 10px"
     }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: row[f] || "",
-    onChange: e => updF(idx, f, e.target.value),
-    style: is
-  }), f === "obligation" && (parseFloat(row[f]) || 0) > 0 && /*#__PURE__*/React.createElement("div", {
-    style: { fontSize: 11, color: "#16a34a", fontWeight: 700, marginTop: 2 }
-  }, fmt(parseFloat(row[f]))))), /*#__PURE__*/React.createElement("td", {
+  }, f === "obligation"
+    ? /*#__PURE__*/React.createElement(CurrencyInput, { value: row[f] || "", onChange: v => updF(idx, f, v), style: is })
+    : /*#__PURE__*/React.createElement("input", { value: row[f] || "", onChange: e => updF(idx, f, e.target.value), style: is }))), /*#__PURE__*/React.createElement("td", {
     style: {
       padding: "6px 10px"
     }
