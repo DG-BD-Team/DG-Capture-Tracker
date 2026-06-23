@@ -3244,9 +3244,9 @@ function CallPlanTab({
       padding: "6px 8px"
     }
   }, /*#__PURE__*/React.createElement("input", {
-    value: row[c] || "",
+    value: (row[c] != null && row[c] !== "") ? row[c] : (c === "Title / Org" ? [row.Title, row.Org].filter(Boolean).join(" — ") : ""),
     onChange: e => upd(key, idx, c, e.target.value),
-    style: is
+    style: widths[c] ? { ...is, minWidth: widths[c] } : is
   }))), /*#__PURE__*/React.createElement("td", {
     style: {
       padding: "6px 8px"
