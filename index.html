@@ -4803,6 +4803,7 @@ function ActionsTab({
   setData,
   roster
 }) {
+  const [editTask, setEditTask] = useState(null);
   const upd = (w, i, f, v) => setData(p => {
     const a = [...p.actionItems[w]];
     a[i] = {
