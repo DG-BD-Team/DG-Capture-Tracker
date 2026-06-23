@@ -3037,6 +3037,7 @@ function CallPlanTab({
   const statCounts = { Planned: 0, Scheduled: 0, Completed: 0, Missed: 0 };
   engagements.forEach(e => { if (statCounts[e.status] !== undefined) statCounts[e.status]++; });
   const inputS = (extra) => ({ fontSize: 12, padding: "5px 8px", borderRadius: 5, border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a", fontFamily: "inherit", ...extra });
+  const [editEng, setEditEng] = useState(null);
   const engByDate = {};
   engagements.forEach(e => { if (e.targetDate) { if (!engByDate[e.targetDate]) engByDate[e.targetDate] = []; engByDate[e.targetDate].push(e); } });
   const todayYM = today.getFullYear() * 12 + today.getMonth();
