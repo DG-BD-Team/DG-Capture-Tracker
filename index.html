@@ -2103,17 +2103,12 @@ function GateTab({
       style: { display: "grid", gridTemplateColumns: "24px 160px 1fr 100px 80px 28px", alignItems: "center", gap: 6, padding: "7px 12px", borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }
     },
       /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: "#aaa", fontWeight: 700 } }, i + 1),
-      ...[["customer","Customer..."],["title","Contract title..."],["value","$0M"],["ftes","0"]].map(([field, ph]) =>
-        /*#__PURE__*/React.createElement("div", { key: field, style: { display: "flex", flexDirection: "column", gap: 2 } },
-          /*#__PURE__*/React.createElement("input", {
-            value: pp[field] || "",
-            onChange: e => updPP(i, field, e.target.value),
-            placeholder: ph,
-            style: { width: "100%", padding: "5px 8px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit" }
-          }),
-          field === "value" && fmtCurrency(pp[field]) && /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "#16a34a", fontWeight: 700 } }, fmtCurrency(pp[field]))
-        )
-      ),
+      ...[["customer","Customer..."],["title","Contract title..."],["value","$0"],["ftes","0"]].map(([field, ph]) => {
+        const stl = { width: "100%", padding: "5px 8px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", boxSizing: "border-box" };
+        return field === "value"
+          ? /*#__PURE__*/React.createElement(CurrencyInput, { key: field, value: pp[field] || "", onChange: v => updPP(i, field, v), placeholder: ph, style: stl })
+          : /*#__PURE__*/React.createElement("input", { key: field, value: pp[field] || "", onChange: e => updPP(i, field, e.target.value), placeholder: ph, style: stl });
+      }),
       /*#__PURE__*/React.createElement("button", { onClick: () => removePP(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, lineHeight: 1, textAlign: "center" } }, "×")
     )),
     pastPerfs.length === 0 && /*#__PURE__*/React.createElement("div", { style: { padding: "16px", textAlign: "center", color: "#aaa", fontSize: 12 } }, "No past performances added yet")
