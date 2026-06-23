@@ -3280,7 +3280,25 @@ function CallPlanTab({
       cursor: "pointer",
       fontWeight: 700
     }
-  }, "+ Add Row"))));
+  }, "+ Add Row"))),
+  editEng && (() => {
+    const CE = React.createElement;
+    const row = (data.callPlan.engagementTimeline || [])[editEng.i] || {};
+    return CE("div", { onClick: () => setEditEng(null), style: { position: "fixed", inset: 0, background: "rgba(4,18,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 } },
+      CE("div", { onClick: e => e.stopPropagation(), style: { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 640, boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" } },
+        CE("div", { style: { background: NAVY, color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" } },
+          CE("span", { style: { fontSize: 15, fontWeight: 700 } }, editEng.label),
+          CE("button", { onClick: () => setEditEng(null), style: { background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")
+        ),
+        CE("div", { style: { padding: 20 } },
+          CE("textarea", { autoFocus: true, value: row[editEng.field] || "", onChange: e => updEng(editEng.i, editEng.field, e.target.value), placeholder: editEng.label + "...", style: { width: "100%", minHeight: 220, fontSize: 15, padding: "12px 14px", borderRadius: 8, border: "1px solid #d0d5dd", color: "#1a1a1a", fontFamily: "inherit", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" } }),
+          CE("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: 16 } },
+            CE("button", { onClick: () => setEditEng(null), style: { padding: "8px 20px", fontSize: 13, fontWeight: 700, borderRadius: 6, border: "none", background: ORANGE, color: "#fff", cursor: "pointer" } }, "Done")
+          )
+        )
+      )
+    );
+  })());
 }
 function CompetitionTab({ data, setData }) {
   const [openIdx, setOpenIdx] = useState(null);
