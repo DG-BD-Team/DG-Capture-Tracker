@@ -1524,12 +1524,35 @@ function MetaTab({
     }
   }));
   const m = data.meta;
-  const partners = (m.teamingPartners && m.teamingPartners.length > 0)
+  const storedPartners = (m.teamingPartners && m.teamingPartners.length > 0)
     ? m.teamingPartners
     : m.teamingPartner ? [{name: m.teamingPartner, nda: !!m.ndaExecuted, ta: !!m.taExecuted}] : [];
-  const rivals = (m.competitors && m.competitors.length > 0)
+  const storedRivals = (m.competitors && m.competitors.length > 0)
     ? m.competitors
     : m.competition ? [{name: m.competition}] : [];
+  // Pull names entered on the Teaming and Competition tabs, merge by name (preserve NDA/TA + manual entries)
+  const teamingTabNames = (data.teaming || []).map(t => (t.name || "").trim()).filter(Boolean);
+  const competitionTabNames = (data.competition || []).map(c => (c.name || "").trim()).filter(Boolean);
+  const mergeNames = (tabNames, stored, makeEntry) => {
+    const out = [];
+    const seen = new Set();
+    tabNames.forEach(name => {
+      const key = name.toLowerCase();
+      if (seen.has(key)) return;
+      const ex = stored.find(p => (p.name || "").trim().toLowerCase() === key);
+      out.push(ex || makeEntry(name));
+      seen.add(key);
+    });
+    stored.forEach(p => {
+      const key = (p.name || "").trim().toLowerCase();
+      if (key && seen.has(key)) return;
+      out.push(p);
+      if (key) seen.add(key);
+    });
+    return out;
+  };
+  const partners = mergeNames(teamingTabNames, storedPartners, name => ({ name, nda: false, ta: false }));
+  const rivals = mergeNames(competitionTabNames, storedRivals, name => ({ name }));
   const updPartner = (i, field, val) => { const arr = [...partners]; arr[i] = {...arr[i], [field]: val}; u("teamingPartners", arr); };
   const addPartner = () => u("teamingPartners", [...partners, {name: "", nda: false, ta: false}]);
   const removePartner = i => u("teamingPartners", partners.filter((_, j) => j !== i));
