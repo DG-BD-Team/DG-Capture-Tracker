@@ -4918,6 +4918,11 @@ function ActionsTab({
                 c.key === "actionee"
                   ? CE("select", { value: row[c.key] || "", onChange: e => upd(w, idx, c.key, e.target.value), style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" } },
                       rosterNames.map(p => CE("option", { key: p, value: p }, p || "-- Assign --")))
+                  : c.key === "task"
+                  ? CE("div", { style: { display: "flex", alignItems: "center", gap: 4 } },
+                      CE("textarea", { value: row[c.key] || "", onChange: e => upd(w, idx, c.key, e.target.value), rows: 2, placeholder: "Task description...", style: { width: "100%", minWidth: c.w, fontSize: 13, padding: "6px 8px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a", fontFamily: "inherit", resize: "vertical", lineHeight: 1.4 } }),
+                      CE("button", { onClick: () => setEditTask({ w: w, idx: idx }), title: "Expand", style: { flexShrink: 0, width: 26, height: 26, borderRadius: 4, border: "1px solid #d0d5dd", background: "#f5f6fa", color: "#666", cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "⛶")
+                    )
                   : CE("input", { type: c.type || "text", value: row[c.key] || "", onChange: e => upd(w, idx, c.key, e.target.value), style: { width: "100%", maxWidth: c.w, fontSize: 12, padding: "4px 6px", borderRadius: 4, border: "1px solid #ddd", background: w === "completed" ? "#f0f7f0" : "#fff", color: "#1a1a1a" } })
               )),
               w === "completed" && CE("td", { style: { padding: "6px 12px", fontSize: 11, color: "#2e7d32", fontWeight: 700 } }, row.dateCompleted),
