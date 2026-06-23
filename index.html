@@ -3036,7 +3036,84 @@ function CallPlanTab({
   const statCounts = { Planned: 0, Scheduled: 0, Completed: 0, Missed: 0 };
   engagements.forEach(e => { if (statCounts[e.status] !== undefined) statCounts[e.status]++; });
   const inputS = (extra) => ({ fontSize: 12, padding: "5px 8px", borderRadius: 5, border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a", fontFamily: "inherit", ...extra });
+  const engByDate = {};
+  engagements.forEach(e => { if (e.targetDate) { if (!engByDate[e.targetDate]) engByDate[e.targetDate] = []; engByDate[e.targetDate].push(e); } });
+  const todayYM = today.getFullYear() * 12 + today.getMonth();
+  const futureYMs = engagements.filter(e => e.targetDate).map(e => { const d = new Date(e.targetDate + "T12:00:00"); return d.getFullYear() * 12 + d.getMonth(); }).filter(ym => ym >= todayYM);
+  const startYM = futureYMs.length > 0 ? Math.min(...futureYMs) : todayYM;
+  const calMonths = [startYM, startYM + 1, startYM + 2];
+  const renderMiniCal = (ym) => {
+    const CE = React.createElement;
+    const yr = Math.floor(ym / 12), mo = ym % 12;
+    const mName = new Date(yr, mo, 1).toLocaleString("en-US", { month: "long" }).toUpperCase();
+    const firstDow = new Date(yr, mo, 1).getDay();
+    const daysInMo = new Date(yr, mo + 1, 0).getDate();
+    const todayStr = today.toISOString().split("T")[0];
+    const cells = [];
+    for (let i = 0; i < firstDow; i++) cells.push(null);
+    for (let d = 1; d <= daysInMo; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    const weeks = [];
+    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+    const weekRows = weeks.map((week, wi) =>
+      CE("div", { key: wi, style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 2 } },
+        week.map((day, di) => {
+          if (!day) return CE("div", { key: di, style: { height: 30 } });
+          const ds = yr + "-" + String(mo + 1).padStart(2,"0") + "-" + String(day).padStart(2,"0");
+          const dEngs = engByDate[ds] || [];
+          const isToday = ds === todayStr;
+          if (dEngs.length > 0) {
+            const c = ENG_STATUS[dEngs[0].status] || ENG_STATUS["Planned"];
+            return CE("div", { key: di, style: { display: "flex", flexDirection: "column", alignItems: "center" } },
+              CE("div", { title: dEngs.map(e => (e.type || "Meeting") + ": " + (e.contact || "TBD")).join("\n"), style: { width: 28, height: 28, borderRadius: "50%", background: c.dot, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 11 } }, day),
+              dEngs.length > 1 ? CE("div", { style: { fontSize: 8, color: c.dot, fontWeight: 700, lineHeight: 1 } }, "+" + (dEngs.length - 1)) : null
+            );
+          }
+          return CE("div", { key: di, style: { height: 30, display: "flex", alignItems: "center", justifyContent: "center" } },
+            CE("span", { style: { fontSize: 11, color: isToday ? "#fff" : "#444", fontWeight: isToday ? 700 : 400, width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: isToday ? ORANGE : "transparent" } }, day)
+          );
+        })
+      )
+    );
+    return CE("div", { style: { flex: 1 } },
+      CE("div", { style: { textAlign: "center", fontWeight: 800, fontSize: 12, color: NAVY, marginBottom: 10, letterSpacing: "0.06em" } }, mName + " " + yr),
+      CE("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 } },
+        ["S","M","T","W","T","F","S"].map((d, i) => CE("div", { key: i, style: { textAlign: "center", fontSize: 10, fontWeight: 700, color: "#aaa", padding: "3px 0" } }, d))
+      ),
+      weekRows
+    );
+  };
   return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement(Sec, { title: "Engagement Calendar" },
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 } },
+        Object.entries(ENG_STATUS).map(([s, c]) =>
+          /*#__PURE__*/React.createElement("div", { key: s, style: { display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 20, background: c.bg, border: "1px solid " + c.border } },
+            /*#__PURE__*/React.createElement("div", { style: { width: 10, height: 10, borderRadius: "50%", background: c.dot } }),
+            /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: c.text } }, s)
+          )
+        )
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 0 } },
+        calMonths.map((ym, ci) =>
+          /*#__PURE__*/React.createElement("div", { key: ym, style: { flex: 1, borderRight: ci < 2 ? "1px solid #f0f0f0" : "none", padding: "0 12px" } },
+            renderMiniCal(ym)
+          )
+        )
+      ),
+      sorted.filter(e => e.targetDate).length > 0 && /*#__PURE__*/React.createElement("div", { style: { marginTop: 20, borderTop: "2px solid " + ORANGE, paddingTop: 14 } },
+        /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: ORANGE, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 } }, "KEY DATES AT A GLANCE"),
+        /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
+          sorted.filter(e => e.targetDate).slice(0, 9).map((eng, idx) => {
+            const c = ENG_STATUS[eng.status] || ENG_STATUS["Planned"];
+            return /*#__PURE__*/React.createElement("div", { key: idx, style: { padding: "10px 16px", background: idx % 2 === 0 ? "#fff" : "#fafafa", borderBottom: "1px solid #f0f0f0", borderRight: idx % 3 !== 2 ? "1px solid #f0f0f0" : "none" } },
+              /*#__PURE__*/React.createElement("div", { style: { fontWeight: 700, fontSize: 12, color: NAVY, marginBottom: 2 } }, fmtDate(eng.targetDate)),
+              /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: c.text } }, [eng.type, eng.contact || "TBD"].filter(Boolean).join(" · ")),
+              eng.purpose && /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "#666", marginTop: 2 } }, eng.purpose)
+            );
+          })
+        )
+      )
+    ),
     /*#__PURE__*/React.createElement(Sec, { title: "Engagement Strategy Timeline" },
       /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" } },
         Object.entries(statCounts).map(([status, count]) => {
