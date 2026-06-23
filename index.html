@@ -706,6 +706,14 @@ function FInput({
       lineHeight: 1.5
     }
   }));
+  if (currency) return /*#__PURE__*/React.createElement("div", {
+    style: wrap
+  }, /*#__PURE__*/React.createElement(Lbl, null, label), /*#__PURE__*/React.createElement(CurrencyInput, {
+    value: value,
+    onChange: onChange,
+    placeholder: placeholder,
+    style: base
+  }));
   return /*#__PURE__*/React.createElement("div", {
     style: wrap
   }, /*#__PURE__*/React.createElement(Lbl, null, label), /*#__PURE__*/React.createElement("input", {
@@ -714,9 +722,7 @@ function FInput({
     onChange: e => onChange(e.target.value),
     placeholder: placeholder,
     style: base
-  }), currency && fmtCurrency(value) && /*#__PURE__*/React.createElement("div", {
-    style: { fontSize: 11, color: "#16a34a", fontWeight: 700, marginTop: 1 }
-  }, fmtCurrency(value)));
+  }));
 }
 function Grid({
   cols = 3,
