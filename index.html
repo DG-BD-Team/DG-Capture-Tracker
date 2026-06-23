@@ -3794,8 +3794,7 @@ function StaffingTab({ data, setData }) {
                       )
                     ),
                     CE("td", { style: { padding: "4px 6px" } },
-  CE("input", { value: row.salary || "", onChange: e => upd(i, "salary", e.target.value), placeholder: "$0,000", style: inp() }),
-  fmtCurrency(row.salary) && CE("div", { style: { fontSize: 11, color: "#16a34a", fontWeight: 700, marginTop: 2 } }, fmtCurrency(row.salary))
+  CE(CurrencyInput, { value: row.salary || "", onChange: v => upd(i, "salary", v), placeholder: "$0,000", style: inp() })
 ),
                     CE("td", { style: { padding: "4px 6px", textAlign: "center" } },
                       CE("button", { onClick: () => delRow(i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
