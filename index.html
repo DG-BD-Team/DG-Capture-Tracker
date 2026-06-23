@@ -644,6 +644,19 @@ function fmtCurrency(v) {
   if (Math.abs(n) < 1 && s.includes(".")) return null;
   return "$" + Math.round(n).toLocaleString();
 }
+function CurrencyInput({ value, onChange, style, placeholder }) {
+  const [focused, setFocused] = useState(false);
+  const display = focused ? (value || "") : (fmtCurrency(value) || value || "");
+  return /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: display,
+    placeholder: placeholder || "",
+    onFocus: () => setFocused(true),
+    onBlur: () => setFocused(false),
+    onChange: e => onChange(e.target.value),
+    style: style
+  });
+}
 function FInput({
   label,
   value,
