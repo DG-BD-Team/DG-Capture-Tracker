@@ -476,7 +476,8 @@ function blankPursuit(id) {
       evalBoard: [],
       incumbentStaff: [],
       competitorRecruiting: [],
-      engagementTimeline: []
+      engagementTimeline: [],
+      shapingTracker: []
     },
     competition: [],
     teaming: [],
@@ -2974,23 +2975,31 @@ function CallPlanTab({
   setData,
   roster
 }) {
+  const TIER_OPTS = ["", "T1 – Decision Maker", "T2 – Influencer", "T3 – Intelligence", "T4 – Teaming/Sub"];
+  const INFLUENCE_OPTS = ["", "High", "Medium", "Low"];
+  const DISPOSITION_OPTS = ["", "Favorable", "Neutral", "Unknown", "Unfavorable"];
+  const REL_OPTS = ["", "1", "2", "3", "4", "5"];
   const sections = [{
     key: "govStaff",
     title: "Government Staff — Relationship Map",
-    cols: ["Name", "Title / Org", "LinkedIn/Bio", "Yrs at Agency", "Email", "Phone", "Reachout POC", "Purpose/Objective", "Last Contact", "Vision/Goals", "Hot Buttons", "Competitor Relationships", "Notes"],
-    widths: { "Name": 135 }
+    cols: ["Name", "Title / Role", "Org", "Tier", "Relationship\n(1–5)", "Influence", "Disposition", "LinkedIn/Bio", "Email", "Phone", "Reachout POC", "Last Contact", "Vision / Goals", "Hot Buttons", "Shaping Opportunity", "Competitor Relationships", "Notes"],
+    widths: { "Name": 140, "Title / Role": 140 },
+    selects: { "Tier": TIER_OPTS, "Influence": INFLUENCE_OPTS, "Disposition": DISPOSITION_OPTS, "Relationship\n(1–5)": REL_OPTS }
   }, {
     key: "evalBoard",
     title: "Evaluation Board",
-    cols: ["Name", "Title", "Org", "LinkedIn/Bio", "Yrs at Agency", "Eval Board?", "Vision/Goals", "Hot Buttons", "Competitor Relationships", "Notes"]
+    cols: ["Name", "Title", "Org", "Tier", "Relationship\n(1–5)", "Influence", "Disposition", "LinkedIn/Bio", "Eval Board?", "Vision / Goals", "Hot Buttons", "Shaping Opportunity", "Competitor Relationships", "Notes"],
+    selects: { "Tier": TIER_OPTS, "Influence": INFLUENCE_OPTS, "Disposition": DISPOSITION_OPTS, "Relationship\n(1–5)": REL_OPTS }
   }, {
     key: "incumbentStaff",
     title: "Incumbent Staff Intel",
-    cols: ["Name", "Title", "Org", "LinkedIn/Bio", "Yrs at Agency", "Customer Relationship", "Education", "Certs", "Relevant Experience", "Notes"]
+    cols: ["Name", "Title", "Org", "LinkedIn/Bio", "Yrs at Agency", "Customer Relationship", "Education", "Certs", "Relevant Experience", "Recruitable?", "Notes"],
+    selects: { "Recruitable?": ["", "Yes", "No", "Maybe"] }
   }, {
     key: "competitorRecruiting",
     title: "Competitors Recruiting (Same Positions)",
-    cols: ["Company", "Job Title", "Salary Range", "Link", "Years Exp", "Education", "Certs", "Responsibilities", "Notes"]
+    cols: ["Company", "Job Title", "Salary Range", "Link", "Years Exp", "Education", "Certs", "Responsibilities", "Notes"],
+    selects: {}
   }];
   const add = k => setData(p => ({
     ...p,
@@ -3030,44 +3039,120 @@ function CallPlanTab({
     background: "#fff",
     color: "#1a1a1a"
   };
-  const engagements = data.callPlan.engagementTimeline || [];
-  const addEngagement = () => setData(p => ({
-    ...p,
-    callPlan: { ...p.callPlan, engagementTimeline: [...(p.callPlan.engagementTimeline || []), { id: Date.now(), contact: "", org: "", type: "Meeting", targetDate: "", purpose: "", status: "Planned", owner: "", notes: "" }] }
-  }));
-  const updEng = (i, field, val) => setData(p => {
-    const a = [...(p.callPlan.engagementTimeline || [])];
-    a[i] = { ...a[i], [field]: val };
-    return { ...p, callPlan: { ...p.callPlan, engagementTimeline: a } };
+  const TIER_COLORS = {
+    "T1 – Decision Maker": { bg: "#fce4ec", color: "#880e4f", border: "#f48fb1" },
+    "T2 – Influencer":     { bg: "#e8eaf6", color: "#283593", border: "#9fa8da" },
+    "T3 – Intelligence":   { bg: "#e0f2f1", color: "#004d40", border: "#80cbc4" },
+    "T4 – Teaming/Sub":    { bg: "#fff8e1", color: "#e65100", border: "#ffcc02" }
+  };
+  const REL_COLORS = { "5": "#2e7d32", "4": "#558b2f", "3": "#f57f17", "2": "#e65100", "1": "#c62828" };
+  const engByStakeholder = {};
+  (data.callPlan.engagementTimeline || []).forEach(e => {
+    const key = (e.contact || "").trim().toLowerCase();
+    if (key) { if (!engByStakeholder[key]) engByStakeholder[key] = []; engByStakeholder[key].push(e); }
   });
-  const delEng = i => setData(p => ({ ...p, callPlan: { ...p.callPlan, engagementTimeline: (p.callPlan.engagementTimeline || []).filter((_, j) => j !== i) } }));
+  const getLastContact = (name) => {
+    const key = (name || "").trim().toLowerCase();
+    const engs = (engByStakeholder[key] || []).filter(e => e.targetDate && e.status === "Completed");
+    if (!engs.length) return null;
+    return engs.sort((a,b) => new Date(b.targetDate) - new Date(a.targetDate))[0].targetDate;
+  };
+  const getNextEngagement = (name) => {
+    const key = (name || "").trim().toLowerCase();
+    const today = new Date();
+    const upcoming = (engByStakeholder[key] || []).filter(e => e.targetDate && new Date(e.targetDate + "T12:00:00") >= today);
+    if (!upcoming.length) return null;
+    return upcoming.sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))[0];
+  };
+  const fmtD = d => d ? new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  return /*#__PURE__*/React.createElement("div", null,
+    sections.map(({ key, title, cols, widths = {}, selects = {} }) =>
+      /*#__PURE__*/React.createElement(Sec, { key, title },
+        /*#__PURE__*/React.createElement("div", { style: { overflowX: "auto", border: "1px solid #e8eaed", borderRadius: 8 } },
+          /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 11, minWidth: 600 } },
+            /*#__PURE__*/React.createElement("thead", null,
+              /*#__PURE__*/React.createElement("tr", { style: { background: "#f5f6fa" } },
+                cols.map(c => /*#__PURE__*/React.createElement("th", { key: c, style: { padding: "8px 10px", textAlign: "left", fontWeight: 700, color: "#555", whiteSpace: "nowrap", fontSize: 11, width: widths[c] || undefined } }, c.replace("\n", " "))),
+                /*#__PURE__*/React.createElement("th", { style: { width: 60, padding: "8px 6px", color: "#555", fontWeight: 700, fontSize: 11 } }, "Engmts"),
+                /*#__PURE__*/React.createElement("th", { style: { width: 30 } })
+              )
+            ),
+            /*#__PURE__*/React.createElement("tbody", null,
+              data.callPlan[key].length === 0 && /*#__PURE__*/React.createElement("tr", null,
+                /*#__PURE__*/React.createElement("td", { colSpan: cols.length + 2, style: { padding: "20px", textAlign: "center", color: "#888", fontSize: 12 } }, "No entries yet — click \"+ Add Row\"")
+              ),
+              data.callPlan[key].map((row, idx) => {
+                const name = row["Name"] || "";
+                const tier = row["Tier"] || "";
+                const tc = TIER_COLORS[tier] || {};
+                const rel = row["Relationship\n(1–5)"] || "";
+                const relColor = REL_COLORS[rel] || "#666";
+                const lastContact = key === "govStaff" || key === "evalBoard" ? getLastContact(name) : null;
+                const nextEng = key === "govStaff" || key === "evalBoard" ? getNextEngagement(name) : null;
+                const engCount = name ? ((engByStakeholder[(name).trim().toLowerCase()] || []).length) : 0;
+                return /*#__PURE__*/React.createElement("tr", { key: idx, style: { borderTop: "1px solid #eee" } },
+                  cols.map(c => {
+                    const opts = selects[c];
+                    const val = row[c] != null ? row[c] : "";
+                    if (opts) {
+                      let cellBg = "transparent", cellColor = "#1a1a1a", cellBorder = "#ddd";
+                      if (c === "Tier" && tc.bg) { cellBg = tc.bg; cellColor = tc.color; cellBorder = tc.border; }
+                      if (c === "Relationship\n(1–5)" && rel) { cellBg = relColor + "22"; cellColor = relColor; }
+                      return /*#__PURE__*/React.createElement("td", { key: c, style: { padding: "4px 6px", verticalAlign: "middle" } },
+                        /*#__PURE__*/React.createElement("select", { value: val, onChange: e => upd(key, idx, c, e.target.value), style: { fontSize: 11, padding: "4px 6px", borderRadius: 4, border: "1px solid " + cellBorder, background: cellBg, color: cellColor, fontWeight: opts && c !== "Recruitable?" ? 700 : 400, cursor: "pointer", width: "100%" } },
+                          opts.map(o => /*#__PURE__*/React.createElement("option", { key: o, value: o }, o))
+                        )
+                      );
+                    }
+                    return /*#__PURE__*/React.createElement("td", { key: c, style: { padding: "4px 6px", verticalAlign: "middle" } },
+                      /*#__PURE__*/React.createElement("input", { value: val, onChange: e => upd(key, idx, c, e.target.value), style: { ...is, fontSize: 11, padding: "4px 6px", minWidth: widths[c] || 70 } })
+                    );
+                  }),
+                  /*#__PURE__*/React.createElement("td", { style: { padding: "4px 6px", verticalAlign: "middle", textAlign: "center" } },
+                    engCount > 0
+                      ? /*#__PURE__*/React.createElement("div", { title: nextEng ? ("Next: " + fmtD(nextEng.targetDate) + " — " + (nextEng.type || "")) : "No upcoming engagements", style: { display: "flex", flexDirection: "column", alignItems: "center", gap: 1 } },
+                          /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: NAVY, background: "#e8eaf6", borderRadius: 10, padding: "1px 7px" } }, engCount + " eng"),
+                          nextEng && /*#__PURE__*/React.createElement("span", { style: { fontSize: 9, color: "#888" } }, fmtD(nextEng.targetDate))
+                        )
+                      : /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, color: "#ccc" } }, "—")
+                  ),
+                  /*#__PURE__*/React.createElement("td", { style: { padding: "4px 6px", verticalAlign: "middle" } },
+                    /*#__PURE__*/React.createElement("button", { onClick: () => del(key, idx), style: { background: "transparent", border: "none", color: "#c62828", cursor: "pointer", fontSize: 14 } }, "✕")
+                  )
+                );
+              })
+            )
+          )
+        ),
+        /*#__PURE__*/React.createElement("button", { onClick: () => add(key), style: { marginTop: 8, padding: "5px 12px", fontSize: 11, borderRadius: 6, border: `1px solid ${ORANGE}`, background: "transparent", color: ORANGE, cursor: "pointer", fontWeight: 700 } }, "+ Add Row")
+      )
+    )
+  );
+}
+function EngagementLogTab({ data, setData, roster }) {
   const ENG_STATUS = {
     "Planned":   { bg: "#e3f2fd", border: "#90caf9", text: "#1565c0", dot: "#42a5f5" },
     "Scheduled": { bg: "#fff8e1", border: "#ffcc02", text: "#e65100", dot: ORANGE },
     "Completed": { bg: "#e8f5e9", border: "#a5d6a7", text: "#2e7d32", dot: "#4caf50" },
     "Missed":    { bg: "#ffebee", border: "#ef9a9a", text: "#c62828", dot: "#f44336" }
   };
-  const ENG_TYPES = ["Meeting", "Phone Call", "Capability Brief", "Site Visit", "Industry Day", "Conference", "Draft RFP Review", "Other"];
-  const sorted = [...engagements].map((e, i) => ({ ...e, _i: i })).sort((a, b) => {
-    if (!a.targetDate && !b.targetDate) return 0;
-    if (!a.targetDate) return 1;
-    if (!b.targetDate) return -1;
-    return new Date(a.targetDate) - new Date(b.targetDate);
-  });
+  const ENG_TYPES = ["Meeting", "Phone Call", "Capability Brief", "Site Visit", "Industry Day", "Conference", "Draft RFP Review", "Email Follow-up", "Other"];
+  const SHAPING_STATUS = ["Planned","In Progress","Achieved","Dropped"];
+  const SHAPING_COLORS = { "Planned": { bg: "#e3f2fd", color: "#1565c0" }, "In Progress": { bg: "#fff8e1", color: "#e65100" }, "Achieved": { bg: "#e8f5e9", color: "#2e7d32" }, "Dropped": { bg: "#fce4ec", color: "#880e4f" } };
+  const engagements = data.callPlan.engagementTimeline || [];
+  const shapingItems = data.callPlan.shapingTracker || [];
+  const addEngagement = () => setData(p => ({ ...p, callPlan: { ...p.callPlan, engagementTimeline: [...(p.callPlan.engagementTimeline || []), { id: Date.now(), contact: "", org: "", type: "Meeting", targetDate: "", purpose: "", status: "Planned", owner: "", outcomes: "", actionItemsDG: "", actionItemsCust: "" }] } }));
+  const updEng = (i, f, v) => setData(p => { const a = [...(p.callPlan.engagementTimeline || [])]; a[i] = { ...a[i], [f]: v }; return { ...p, callPlan: { ...p.callPlan, engagementTimeline: a } }; });
+  const delEng = i => setData(p => ({ ...p, callPlan: { ...p.callPlan, engagementTimeline: (p.callPlan.engagementTimeline || []).filter((_, j) => j !== i) } }));
+  const addShaping = () => setData(p => ({ ...p, callPlan: { ...p.callPlan, shapingTracker: [...(p.callPlan.shapingTracker || []), { id: Date.now(), goal: "", pwsSection: "", desiredOutcome: "", approach: "", stakeholderTarget: "", owner: "", targetDate: "", status: "Planned", evidence: "", notes: "" }] } }));
+  const updShape = (i, f, v) => setData(p => { const a = [...(p.callPlan.shapingTracker || [])]; a[i] = { ...a[i], [f]: v }; return { ...p, callPlan: { ...p.callPlan, shapingTracker: a } }; });
+  const delShape = i => setData(p => ({ ...p, callPlan: { ...p.callPlan, shapingTracker: (p.callPlan.shapingTracker || []).filter((_, j) => j !== i) } }));
+  const [editField, setEditField] = useState(null);
+  const sorted = [...engagements].map((e, i) => ({ ...e, _i: i })).sort((a, b) => { if (!a.targetDate && !b.targetDate) return 0; if (!a.targetDate) return 1; if (!b.targetDate) return -1; return new Date(a.targetDate) - new Date(b.targetDate); });
   const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "No date set";
   const today = new Date();
-  const phase = d => {
-    if (!d) return "Unscheduled";
-    const diff = (new Date(d) - today) / (1000 * 60 * 60 * 24);
-    if (diff < 0) return "Past";
-    if (diff <= 90) return "Near-Term (< 3 mo)";
-    if (diff <= 180) return "Mid-Term (3–6 mo)";
-    return "Long-Term (6+ mo)";
-  };
   const statCounts = { Planned: 0, Scheduled: 0, Completed: 0, Missed: 0 };
   engagements.forEach(e => { if (statCounts[e.status] !== undefined) statCounts[e.status]++; });
-  const inputS = (extra) => ({ fontSize: 12, padding: "5px 8px", borderRadius: 5, border: "1px solid #d0d5dd", background: "#fff", color: "#1a1a1a", fontFamily: "inherit", ...extra });
-  const [editEng, setEditEng] = useState(null);
   const engByDate = {};
   engagements.forEach(e => { if (e.targetDate) { if (!engByDate[e.targetDate]) engByDate[e.targetDate] = []; engByDate[e.targetDate].push(e); } });
   const todayYM = today.getFullYear() * 12 + today.getMonth();
@@ -3087,34 +3172,29 @@ function CallPlanTab({
     while (cells.length % 7 !== 0) cells.push(null);
     const weeks = [];
     for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-    const weekRows = weeks.map((week, wi) =>
-      CE("div", { key: wi, style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 2 } },
-        week.map((day, di) => {
-          if (!day) return CE("div", { key: di, style: { height: 30 } });
-          const ds = yr + "-" + String(mo + 1).padStart(2,"0") + "-" + String(day).padStart(2,"0");
-          const dEngs = engByDate[ds] || [];
-          const isToday = ds === todayStr;
-          if (dEngs.length > 0) {
-            const c = ENG_STATUS[dEngs[0].status] || ENG_STATUS["Planned"];
-            return CE("div", { key: di, style: { display: "flex", flexDirection: "column", alignItems: "center" } },
-              CE("div", { title: dEngs.map(e => (e.type || "Meeting") + ": " + (e.contact || "TBD")).join("\n"), style: { width: 28, height: 28, borderRadius: "50%", background: c.dot, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 11 } }, day),
-              dEngs.length > 1 ? CE("div", { style: { fontSize: 8, color: c.dot, fontWeight: 700, lineHeight: 1 } }, "+" + (dEngs.length - 1)) : null
-            );
-          }
-          return CE("div", { key: di, style: { height: 30, display: "flex", alignItems: "center", justifyContent: "center" } },
-            CE("span", { style: { fontSize: 11, color: isToday ? "#fff" : "#444", fontWeight: isToday ? 700 : 400, width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: isToday ? ORANGE : "transparent" } }, day)
-          );
-        })
-      )
-    );
+    const weekRows = weeks.map((week, wi) => CE("div", { key: wi, style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 2 } }, week.map((day, di) => {
+      if (!day) return CE("div", { key: di, style: { height: 30 } });
+      const ds = yr + "-" + String(mo + 1).padStart(2,"0") + "-" + String(day).padStart(2,"0");
+      const dEngs = engByDate[ds] || [];
+      const isToday = ds === todayStr;
+      if (dEngs.length > 0) {
+        const c = ENG_STATUS[dEngs[0].status] || ENG_STATUS["Planned"];
+        return CE("div", { key: di, style: { display: "flex", flexDirection: "column", alignItems: "center" } },
+          CE("div", { title: dEngs.map(e => (e.type || "Meeting") + ": " + (e.contact || "TBD")).join("\n"), style: { width: 28, height: 28, borderRadius: "50%", background: c.dot, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 11 } }, day),
+          dEngs.length > 1 ? CE("div", { style: { fontSize: 8, color: c.dot, fontWeight: 700, lineHeight: 1 } }, "+" + (dEngs.length - 1)) : null
+        );
+      }
+      return CE("div", { key: di, style: { height: 30, display: "flex", alignItems: "center", justifyContent: "center" } },
+        CE("span", { style: { fontSize: 11, color: isToday ? "#fff" : "#444", fontWeight: isToday ? 700 : 400, width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: isToday ? ORANGE : "transparent" } }, day)
+      );
+    })));
     return CE("div", { style: { flex: 1 } },
       CE("div", { style: { textAlign: "center", fontWeight: 800, fontSize: 12, color: NAVY, marginBottom: 10, letterSpacing: "0.06em" } }, mName + " " + yr),
-      CE("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 } },
-        ["S","M","T","W","T","F","S"].map((d, i) => CE("div", { key: i, style: { textAlign: "center", fontSize: 10, fontWeight: 700, color: "#aaa", padding: "3px 0" } }, d))
-      ),
+      CE("div", { style: { display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 6 } }, ["S","M","T","W","T","F","S"].map((d, i) => CE("div", { key: i, style: { textAlign: "center", fontSize: 10, fontWeight: 700, color: "#aaa", padding: "3px 0" } }, d))),
       weekRows
     );
   };
+  const inS = { fontSize: 12, padding: "5px 8px", borderRadius: 5, border: "1px solid #e0e0e0", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
   return /*#__PURE__*/React.createElement("div", null,
     /*#__PURE__*/React.createElement(Sec, { title: "Engagement Calendar" },
       /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 } },
@@ -3127,9 +3207,7 @@ function CallPlanTab({
       ),
       /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 0 } },
         calMonths.map((ym, ci) =>
-          /*#__PURE__*/React.createElement("div", { key: ym, style: { flex: 1, borderRight: ci < 2 ? "1px solid #f0f0f0" : "none", padding: "0 12px" } },
-            renderMiniCal(ym)
-          )
+          /*#__PURE__*/React.createElement("div", { key: ym, style: { flex: 1, borderRight: ci < 2 ? "1px solid #f0f0f0" : "none", padding: "0 12px" } }, renderMiniCal(ym))
         )
       ),
       sorted.filter(e => e.targetDate).length > 0 && /*#__PURE__*/React.createElement("div", { style: { marginTop: 20, borderTop: "2px solid " + ORANGE, paddingTop: 14 } },
@@ -3146,26 +3224,25 @@ function CallPlanTab({
         )
       )
     ),
-    /*#__PURE__*/React.createElement(Sec, { title: "Engagement Strategy Timeline" },
-      /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" } },
+    /*#__PURE__*/React.createElement(Sec, { title: "Engagement Log" },
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" } },
         Object.entries(statCounts).map(([status, count]) => {
           const c = ENG_STATUS[status];
-          return /*#__PURE__*/React.createElement("div", { key: status, style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 8, border: "1px solid " + c.border, background: c.bg } },
-            /*#__PURE__*/React.createElement("div", { style: { width: 10, height: 10, borderRadius: "50%", background: c.dot } }),
+          return /*#__PURE__*/React.createElement("div", { key: status, style: { display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 8, border: "1px solid " + c.border, background: c.bg } },
+            /*#__PURE__*/React.createElement("div", { style: { width: 8, height: 8, borderRadius: "50%", background: c.dot } }),
             /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: c.text } }, count),
             /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: c.text } }, status)
           );
         })
       ),
       sorted.length === 0
-        ? /*#__PURE__*/React.createElement("div", { style: { padding: "32px", textAlign: "center", border: "1px dashed #e0e0e0", borderRadius: 10, color: "#aaa", fontSize: 13 } },
-            "No engagements planned yet — click \"+ Add Engagement\" to build your customer outreach strategy")
+        ? /*#__PURE__*/React.createElement("div", { style: { padding: "32px", textAlign: "center", border: "1px dashed #e0e0e0", borderRadius: 10, color: "#aaa", fontSize: 13 } }, "No engagements yet — click \"+ Add Engagement\" to build your customer outreach plan")
         : /*#__PURE__*/React.createElement("div", { style: { overflowX: "auto", border: "1px solid #e8eaed", borderRadius: 10 } },
-            /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 900 } },
+            /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 1100 } },
               /*#__PURE__*/React.createElement("thead", null,
                 /*#__PURE__*/React.createElement("tr", { style: { background: "#f5f6fa" } },
-                  [["Date", "110px"], ["Contact", "130px"], ["Org", "120px"], ["Type", "130px"], ["Status", "110px"], ["Purpose / Objective", "1fr"], ["Outcome / Notes", "1fr"], ["Owner", "120px"], ["", "36px"]].map(([h, w]) =>
-                    /*#__PURE__*/React.createElement("th", { key: h, style: { padding: "10px 10px", textAlign: "left", fontWeight: 700, color: "#555", fontSize: 12, whiteSpace: "nowrap", width: w !== "1fr" ? w : undefined } }, h)
+                  [["Date","95px"],["Contact","120px"],["Org","110px"],["Type","120px"],["Status","105px"],["Purpose / Objective","1fr"],["Outcomes / Notes","1fr"],["D&G Action Items","1fr"],["Customer Action Items","1fr"],["Owner","110px"],["","36px"]].map(([h, w]) =>
+                    /*#__PURE__*/React.createElement("th", { key: h, style: { padding: "9px 10px", textAlign: "left", fontWeight: 700, color: "#555", fontSize: 11, whiteSpace: "nowrap", width: w !== "1fr" ? w : undefined } }, h)
                   )
                 )
               ),
@@ -3173,162 +3250,86 @@ function CallPlanTab({
                 sorted.map((eng, si) => {
                   const c = ENG_STATUS[eng.status] || ENG_STATUS["Planned"];
                   const isAlt = si % 2 === 1;
-                  const tdS = { padding: "6px 8px", verticalAlign: "middle", borderTop: "1px solid #f0f0f0", background: isAlt ? "#fafafa" : "#fff" };
-                  const inS = { fontSize: 13, padding: "5px 8px", borderRadius: 5, border: "1px solid #e0e0e0", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", width: "100%", boxSizing: "border-box" };
+                  const tdS = { padding: "5px 7px", verticalAlign: "middle", borderTop: "1px solid #f0f0f0", background: isAlt ? "#fafafa" : "#fff" };
                   return /*#__PURE__*/React.createElement("tr", { key: eng._i },
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("input", { type: "date", value: eng.targetDate || "", onChange: e => updEng(eng._i, "targetDate", e.target.value), style: { ...inS, fontSize: 12 } })
-                    ),
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("input", { value: eng.contact || "", onChange: e => updEng(eng._i, "contact", e.target.value), placeholder: "Name...", style: inS })
-                    ),
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("input", { value: eng.org || "", onChange: e => updEng(eng._i, "org", e.target.value), placeholder: "Agency / Org...", style: inS })
-                    ),
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("select", { value: eng.type || "Meeting", onChange: e => updEng(eng._i, "type", e.target.value), style: { ...inS, cursor: "pointer" } },
-                        ENG_TYPES.map(t => /*#__PURE__*/React.createElement("option", { key: t, value: t }, t))
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("input", { type: "date", value: eng.targetDate || "", onChange: e => updEng(eng._i, "targetDate", e.target.value), style: { ...inS, fontSize: 11 } })),
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("input", { value: eng.contact || "", onChange: e => updEng(eng._i, "contact", e.target.value), placeholder: "Name...", style: inS })),
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("input", { value: eng.org || "", onChange: e => updEng(eng._i, "org", e.target.value), placeholder: "Agency...", style: inS })),
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("select", { value: eng.type || "Meeting", onChange: e => updEng(eng._i, "type", e.target.value), style: { ...inS, cursor: "pointer" } }, ENG_TYPES.map(t => /*#__PURE__*/React.createElement("option", { key: t, value: t }, t)))),
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("select", { value: eng.status || "Planned", onChange: e => updEng(eng._i, "status", e.target.value), style: { ...inS, background: c.bg, color: c.text, fontWeight: 700, border: "1px solid " + c.border, cursor: "pointer" } }, Object.keys(ENG_STATUS).map(s => /*#__PURE__*/React.createElement("option", { key: s, value: s }, s)))),
+                    ...["purpose","outcomes","actionItemsDG","actionItemsCust"].map(field =>
+                      /*#__PURE__*/React.createElement("td", { key: field, style: tdS },
+                        /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 3 } },
+                          /*#__PURE__*/React.createElement("textarea", { value: eng[field] || "", onChange: e => updEng(eng._i, field, e.target.value), rows: 2, placeholder: field === "purpose" ? "Objective..." : field === "outcomes" ? "What happened..." : "Action items...", style: { ...inS, resize: "vertical", lineHeight: 1.4 } }),
+                          /*#__PURE__*/React.createElement("button", { onClick: () => setEditField({ i: eng._i, field, label: field === "purpose" ? "Purpose / Objective" : field === "outcomes" ? "Outcomes / Notes" : field === "actionItemsDG" ? "D&G Action Items" : "Customer Action Items" }), title: "Expand", style: { flexShrink: 0, width: 24, height: 24, borderRadius: 4, border: "1px solid #d0d5dd", background: "#f5f6fa", color: "#666", cursor: "pointer", fontSize: 12 } }, "⛶")
+                        )
                       )
                     ),
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("select", { value: eng.status || "Planned", onChange: e => updEng(eng._i, "status", e.target.value), style: { ...inS, background: c.bg, color: c.text, fontWeight: 700, border: "1px solid " + c.border, cursor: "pointer" } },
-                        Object.keys(ENG_STATUS).map(s => /*#__PURE__*/React.createElement("option", { key: s, value: s }, s))
-                      )
-                    ),
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4 } },
-                        /*#__PURE__*/React.createElement("textarea", { value: eng.purpose || "", onChange: e => updEng(eng._i, "purpose", e.target.value), rows: 2, placeholder: "Objective...", style: { ...inS, resize: "vertical", lineHeight: 1.4 } }),
-                        /*#__PURE__*/React.createElement("button", { onClick: () => setEditEng({ i: eng._i, field: "purpose", label: "Purpose / Objective" }), title: "Expand", style: { flexShrink: 0, width: 26, height: 26, borderRadius: 4, border: "1px solid #d0d5dd", background: "#f5f6fa", color: "#666", cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "⛶")
-                      )
-                    ),
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 4 } },
-                        /*#__PURE__*/React.createElement("textarea", { value: eng.notes || "", onChange: e => updEng(eng._i, "notes", e.target.value), rows: 2, placeholder: "Outcome / follow-up...", style: { ...inS, resize: "vertical", lineHeight: 1.4 } }),
-                        /*#__PURE__*/React.createElement("button", { onClick: () => setEditEng({ i: eng._i, field: "notes", label: "Outcome / Notes" }), title: "Expand", style: { flexShrink: 0, width: 26, height: 26, borderRadius: 4, border: "1px solid #d0d5dd", background: "#f5f6fa", color: "#666", cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" } }, "⛶")
-                      )
-                    ),
-                    /*#__PURE__*/React.createElement("td", { style: tdS },
-                      /*#__PURE__*/React.createElement("select", { value: eng.owner || "", onChange: e => updEng(eng._i, "owner", e.target.value), style: { ...inS, cursor: "pointer" } },
-                        /*#__PURE__*/React.createElement("option", { value: "" }, "-- Assign --"),
-                        (roster || []).map(r => { const n = typeof r === "string" ? r : r.name; return /*#__PURE__*/React.createElement("option", { key: n, value: n }, n); })
-                      )
-                    ),
-                    /*#__PURE__*/React.createElement("td", { style: { ...tdS, textAlign: "center" } },
-                      /*#__PURE__*/React.createElement("button", { onClick: () => delEng(eng._i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
-                    )
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("select", { value: eng.owner || "", onChange: e => updEng(eng._i, "owner", e.target.value), style: { ...inS, cursor: "pointer" } }, /*#__PURE__*/React.createElement("option", { value: "" }, "-- Assign --"), (roster || []).map(r => { const n = typeof r === "string" ? r : r.name; return /*#__PURE__*/React.createElement("option", { key: n, value: n }, n); }))),
+                    /*#__PURE__*/React.createElement("td", { style: { ...tdS, textAlign: "center" } }, /*#__PURE__*/React.createElement("button", { onClick: () => delEng(eng._i), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18 } }, "×"))
                   );
                 })
               )
             )
           ),
-      /*#__PURE__*/React.createElement("button", { onClick: addEngagement, style: { marginTop: 14, padding: "6px 16px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Engagement")
+      /*#__PURE__*/React.createElement("button", { onClick: addEngagement, style: { marginTop: 12, padding: "6px 16px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "1px solid " + ORANGE, background: "transparent", color: ORANGE, cursor: "pointer" } }, "+ Add Engagement")
     ),
-    sections.map(({
-    key,
-    title,
-    cols,
-    widths = {}
-  }) => /*#__PURE__*/React.createElement(Sec, {
-    key: key,
-    title: title
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      overflowX: "auto",
-      border: "1px solid #e8eaed",
-      borderRadius: 8
-    }
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: 11,
-      minWidth: 600
-    }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
-    style: {
-      background: "#f5f6fa"
-    }
-  }, cols.map(c => /*#__PURE__*/React.createElement("th", {
-    key: c,
-    style: {
-      padding: "8px 10px",
-      textAlign: "left",
-      fontWeight: 700,
-      color: "#666",
-      whiteSpace: "nowrap",
-      width: widths[c] || undefined
-    }
-  }, c)), /*#__PURE__*/React.createElement("th", {
-    style: {
-      width: 30
-    }
-  }))), /*#__PURE__*/React.createElement("tbody", null, data.callPlan[key].length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: cols.length + 1,
-    style: {
-      padding: "20px",
-      textAlign: "center",
-      color: "#888",
-      fontSize: 12
-    }
-  }, "No entries yet \u2014 click \"+ Add Row\"")), data.callPlan[key].map((row, idx) => /*#__PURE__*/React.createElement("tr", {
-    key: idx,
-    style: {
-      borderTop: "1px solid #eee"
-    }
-  }, cols.map(c => /*#__PURE__*/React.createElement("td", {
-    key: c,
-    style: {
-      padding: "6px 8px"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: (row[c] != null && row[c] !== "") ? row[c] : (c === "Title / Org" ? [row.Title, row.Org].filter(Boolean).join(" — ") : ""),
-    onChange: e => upd(key, idx, c, e.target.value),
-    style: widths[c] ? { ...is, minWidth: widths[c] } : is
-  }))), /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "6px 8px"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => del(key, idx),
-    style: {
-      background: "transparent",
-      border: "none",
-      color: "#c62828",
-      cursor: "pointer",
-      fontSize: 14
-    }
-  }, "\u2715"))))))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => add(key),
-    style: {
-      marginTop: 8,
-      padding: "5px 12px",
-      fontSize: 11,
-      borderRadius: 6,
-      border: `1px solid ${ORANGE}`,
-      background: "transparent",
-      color: ORANGE,
-      cursor: "pointer",
-      fontWeight: 700
-    }
-  }, "+ Add Row"))),
-  editEng && (() => {
-    const CE = React.createElement;
-    const row = (data.callPlan.engagementTimeline || [])[editEng.i] || {};
-    return CE("div", { onClick: () => setEditEng(null), style: { position: "fixed", inset: 0, background: "rgba(4,18,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 } },
-      CE("div", { onClick: e => e.stopPropagation(), style: { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 640, boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" } },
-        CE("div", { style: { background: NAVY, color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" } },
-          CE("span", { style: { fontSize: 15, fontWeight: 700 } }, editEng.label),
-          CE("button", { onClick: () => setEditEng(null), style: { background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")
-        ),
-        CE("div", { style: { padding: 20 } },
-          CE("textarea", { autoFocus: true, value: row[editEng.field] || "", onChange: e => updEng(editEng.i, editEng.field, e.target.value), placeholder: editEng.label + "...", style: { width: "100%", minHeight: 220, fontSize: 15, padding: "12px 14px", borderRadius: 8, border: "1px solid #d0d5dd", color: "#1a1a1a", fontFamily: "inherit", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" } }),
-          CE("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: 16 } },
-            CE("button", { onClick: () => setEditEng(null), style: { padding: "8px 20px", fontSize: 13, fontWeight: 700, borderRadius: 6, border: "none", background: ORANGE, color: "#fff", cursor: "pointer" } }, "Done")
+    /*#__PURE__*/React.createElement(Sec, { title: "Shaping Tracker" },
+      /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: "#666", marginBottom: 14, fontStyle: "italic" } }, "Document deliberate actions to shape the acquisition — requirements language, evaluation criteria, vehicle, set-aside, and key personnel qualifications."),
+      shapingItems.length === 0
+        ? /*#__PURE__*/React.createElement("div", { style: { padding: "24px", textAlign: "center", border: "1px dashed #e0e0e0", borderRadius: 10, color: "#aaa", fontSize: 13, marginBottom: 10 } }, "No shaping actions yet — click \"+ Add Shaping Goal\"")
+        : /*#__PURE__*/React.createElement("div", { style: { overflowX: "auto", border: "1px solid #e8eaed", borderRadius: 10 } },
+            /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 900 } },
+              /*#__PURE__*/React.createElement("thead", null,
+                /*#__PURE__*/React.createElement("tr", { style: { background: "#f5f6fa" } },
+                  [["Shaping Goal","160px"],["PWS / Section","100px"],["Desired Outcome","160px"],["Approach / Action","1fr"],["Stakeholder Target","120px"],["Owner","100px"],["Target Date","95px"],["Status","100px"],["Evidence","1fr"],["","30px"]].map(([h, w]) =>
+                    /*#__PURE__*/React.createElement("th", { key: h, style: { padding: "9px 10px", textAlign: "left", fontWeight: 700, color: "#555", fontSize: 11, whiteSpace: "nowrap", width: w !== "1fr" ? w : undefined } }, h)
+                  )
+                )
+              ),
+              /*#__PURE__*/React.createElement("tbody", null,
+                shapingItems.map((item, si) => {
+                  const sc = SHAPING_COLORS[item.status] || SHAPING_COLORS["Planned"];
+                  const isAlt = si % 2 === 1;
+                  const tdS = { padding: "5px 7px", verticalAlign: "middle", borderTop: "1px solid #f0f0f0", background: isAlt ? "#fafafa" : "#fff" };
+                  return /*#__PURE__*/React.createElement("tr", { key: item.id },
+                    ...["goal","pwsSection","desiredOutcome","approach","stakeholderTarget","owner"].map(f =>
+                      /*#__PURE__*/React.createElement("td", { key: f, style: tdS },
+                        f === "approach" || f === "desiredOutcome"
+                          ? /*#__PURE__*/React.createElement("textarea", { value: item[f] || "", onChange: e => updShape(si, f, e.target.value), rows: 2, style: { fontSize: 11, padding: "4px 7px", borderRadius: 4, border: "1px solid #e0e0e0", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", width: "100%", resize: "vertical", lineHeight: 1.4, boxSizing: "border-box" } })
+                          : /*#__PURE__*/React.createElement("input", { value: item[f] || "", onChange: e => updShape(si, f, e.target.value), style: { fontSize: 11, padding: "4px 7px", borderRadius: 4, border: "1px solid #e0e0e0", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", width: "100%", boxSizing: "border-box" } })
+                      )
+                    ),
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("input", { type: "date", value: item.targetDate || "", onChange: e => updShape(si, "targetDate", e.target.value), style: { fontSize: 11, padding: "4px 7px", borderRadius: 4, border: "1px solid #e0e0e0", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", width: "100%", boxSizing: "border-box" } })),
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("select", { value: item.status || "Planned", onChange: e => updShape(si, "status", e.target.value), style: { fontSize: 11, padding: "4px 7px", borderRadius: 4, border: "1px solid #e0e0e0", background: sc.bg, color: sc.color, fontWeight: 700, cursor: "pointer", width: "100%", fontFamily: "inherit" } }, SHAPING_STATUS.map(s => /*#__PURE__*/React.createElement("option", { key: s, value: s }, s)))),
+                    /*#__PURE__*/React.createElement("td", { style: tdS }, /*#__PURE__*/React.createElement("textarea", { value: item.evidence || "", onChange: e => updShape(si, "evidence", e.target.value), rows: 2, placeholder: "Observable evidence...", style: { fontSize: 11, padding: "4px 7px", borderRadius: 4, border: "1px solid #e0e0e0", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", width: "100%", resize: "vertical", lineHeight: 1.4, boxSizing: "border-box" } })),
+                    /*#__PURE__*/React.createElement("td", { style: { ...tdS, textAlign: "center" } }, /*#__PURE__*/React.createElement("button", { onClick: () => delShape(si), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18 } }, "×"))
+                  );
+                })
+              )
+            )
+          ),
+      /*#__PURE__*/React.createElement("button", { onClick: addShaping, style: { marginTop: 12, padding: "6px 16px", fontSize: 12, fontWeight: 700, borderRadius: 6, border: "1px solid " + NAVY, background: "transparent", color: NAVY, cursor: "pointer" } }, "+ Add Shaping Goal")
+    ),
+    editField && (() => {
+      const CE = React.createElement;
+      const row = (data.callPlan.engagementTimeline || [])[editField.i] || {};
+      return CE("div", { onClick: () => setEditField(null), style: { position: "fixed", inset: 0, background: "rgba(4,18,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 } },
+        CE("div", { onClick: e => e.stopPropagation(), style: { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 640, boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" } },
+          CE("div", { style: { background: NAVY, color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" } },
+            CE("span", { style: { fontSize: 15, fontWeight: 700 } }, editField.label),
+            CE("button", { onClick: () => setEditField(null), style: { background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 } }, "×")
+          ),
+          CE("div", { style: { padding: 20 } },
+            CE("textarea", { autoFocus: true, value: row[editField.field] || "", onChange: e => updEng(editField.i, editField.field, e.target.value), placeholder: editField.label + "...", style: { width: "100%", minHeight: 220, fontSize: 15, padding: "12px 14px", borderRadius: 8, border: "1px solid #d0d5dd", color: "#1a1a1a", fontFamily: "inherit", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" } }),
+            CE("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: 16 } },
+              CE("button", { onClick: () => setEditField(null), style: { padding: "8px 20px", fontSize: 13, fontWeight: 700, borderRadius: 6, border: "none", background: ORANGE, color: "#fff", cursor: "pointer" } }, "Done")
+            )
           )
         )
-      )
-    );
-  })());
+      );
+    })()
+  );
 }
 function CompetitionTab({ data, setData }) {
   const [openIdx, setOpenIdx] = useState(null);
@@ -5910,8 +5911,12 @@ const TABS = [{
   icon: "ti-building"
 }, {
   id: "callplan",
-  label: "Call Plan",
-  icon: "ti-phone"
+  label: "Stakeholders",
+  icon: "ti-users-group"
+}, {
+  id: "engagementlog",
+  label: "Engagement Log",
+  icon: "ti-calendar-event"
 }, {
   id: "competition",
   label: "Competition",
@@ -6007,6 +6012,11 @@ function PursuitView({
       setData: setData
     }),
     callplan: /*#__PURE__*/React.createElement(CallPlanTab, {
+      data: data,
+      setData: setData,
+      roster: roster
+    }),
+    engagementlog: /*#__PURE__*/React.createElement(EngagementLogTab, {
       data: data,
       setData: setData,
       roster: roster
