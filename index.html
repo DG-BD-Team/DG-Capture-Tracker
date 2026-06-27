@@ -1130,7 +1130,7 @@ function Dashboard({
       gap: 14,
       marginBottom: 28
     }
-  }, [["Active Pursuits", active.length, "ti-target", null], ["Open Actions", active.reduce((s, p) => s + p.actionItems.open.length, 0), "ti-checkbox", null], ["Total Pipeline", active.length === 0 ? "—" : totalValue > 0 ? "$" + totalValue.toLocaleString() : `${active.length} pursuits`, "ti-currency-dollar", null], ["Strategic Engagement", upcomingEngCount, "ti-calendar-event", () => setShowEngModal(true)]].map(([label, val, icon, onClick]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Active Pursuits", active.length, "ti-target", null], ["Total Pipeline", active.length === 0 ? "—" : totalValue > 0 ? "$" + totalValue.toLocaleString() : `${active.length} pursuits`, "ti-currency-dollar", null], ["Open Actions", active.reduce((s, p) => s + p.actionItems.open.length, 0), "ti-checkbox", null], ["Strategic Engagement", upcomingEngCount, "ti-calendar-event", () => setShowEngModal(true)]].map(([label, val, icon, onClick]) => /*#__PURE__*/React.createElement("div", {
     key: label,
     onClick: onClick || undefined,
     style: {
