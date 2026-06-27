@@ -959,7 +959,7 @@ function TeamSettingsModal({ roster, onSave, onClose }) {
     }, "Save Roster"))));
 }
 
-function StrategicEngagementBlock({ pursuits }) {
+function StrategicEngagementModal({ pursuits, onClose }) {
   const today = new Date();
   today.setHours(0,0,0,0);
   const meetings = [];
@@ -973,40 +973,53 @@ function StrategicEngagementBlock({ pursuits }) {
   });
   meetings.sort((a, b) => a._date - b._date);
   const TYPE_COLOR = { "Meeting": "#1a56db", "Phone Call": "#0891b2", "Capability Brief": "#7c3aed", "Site Visit": "#059669", "Industry Day": "#d97706", "Conference": "#dc2626", "Draft RFP Review": "#9333ea", "Email Follow-up": "#6b7280", "Other": "#6b7280" };
-  const fmtD = s => { const d = new Date(s + "T12:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); };
-  const daysUntil = d => { const diff = d - today; return Math.round(diff / 86400000); };
+  const fmtD = s => new Date(s + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  const daysUntil = d => Math.round((d - today) / 86400000);
   return /*#__PURE__*/React.createElement("div", {
-    style: { background: "#fff", border: "1px solid #e8eaed", borderRadius: 10, padding: "14px 16px", marginBottom: 28 }
+    onClick: onClose,
+    style: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }
   },
-    /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 12 } },
-      /*#__PURE__*/React.createElement("div", { style: { width: 30, height: 30, background: "#f0f4f8", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center" } },
-        /*#__PURE__*/React.createElement("i", { className: "ti ti-calendar-event", style: { fontSize: 15, color: NAVY }, "aria-hidden": "true" })
+    /*#__PURE__*/React.createElement("div", {
+      onClick: e => e.stopPropagation(),
+      style: { background: "#fff", borderRadius: 14, width: "min(860px, 95vw)", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }
+    },
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", padding: "18px 22px", borderBottom: "1px solid #e8eaed" } },
+        /*#__PURE__*/React.createElement("i", { className: "ti ti-calendar-event", style: { fontSize: 18, color: NAVY, marginRight: 10 } }),
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: 16, fontWeight: 700, color: NAVY } }, "Strategic Engagements"),
+        /*#__PURE__*/React.createElement("span", { style: { marginLeft: 10, fontSize: 12, color: "#888" } }, `${meetings.length} upcoming`),
+        /*#__PURE__*/React.createElement("button", { onClick: onClose, style: { marginLeft: "auto", background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#888", lineHeight: 1 } }, "×")
       ),
-      /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Strategic Engagements"),
-      /*#__PURE__*/React.createElement("span", { style: { marginLeft: "auto", fontSize: 11, color: "#888" } }, `${meetings.length} upcoming`)
-    ),
-    meetings.length === 0
-      ? /*#__PURE__*/React.createElement("div", { style: { textAlign: "center", padding: "18px 0", color: "#aaa", fontSize: 12 } }, "No upcoming engagements logged across active pursuits")
-      : /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 8 } },
-          meetings.map((e, i) => {
-            const days = daysUntil(e._date);
-            const urgent = days <= 7;
-            const typeColor = TYPE_COLOR[e.type] || "#6b7280";
-            return /*#__PURE__*/React.createElement("div", {
-              key: i,
-              style: { border: `1px solid ${urgent ? "#fca5a5" : "#e8eaed"}`, borderLeft: `3px solid ${typeColor}`, borderRadius: 7, padding: "8px 10px", background: urgent ? "#fff7f7" : "#fafafa" }
-            },
-              /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 } },
-                /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: typeColor, textTransform: "uppercase", letterSpacing: "0.04em" } }, e.type || "Meeting"),
-                /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, color: urgent ? "#dc2626" : "#6b7280", fontWeight: urgent ? 700 : 400 } }, days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days}d`)
-              ),
-              /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: NAVY, marginBottom: 2 } }, e.contact || "TBD", e.org ? /*#__PURE__*/React.createElement("span", { style: { fontWeight: 400, color: "#555" } }, ` — ${e.org}`) : null),
-              /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "#555", marginBottom: 2 } }, fmtD(e.targetDate)),
-              e.purpose && /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "#888", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, e.purpose),
-              /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, color: "#aaa", marginTop: 3 } }, e.pursuitName)
-            );
-          })
-        )
+      /*#__PURE__*/React.createElement("div", { style: { overflowY: "auto", padding: "16px 22px" } },
+        meetings.length === 0
+          ? /*#__PURE__*/React.createElement("div", { style: { textAlign: "center", padding: "40px 0", color: "#aaa", fontSize: 13 } }, "No upcoming engagements logged across active pursuits")
+          : meetings.map((e, i) => {
+              const days = daysUntil(e._date);
+              const urgent = days <= 7;
+              const typeColor = TYPE_COLOR[e.type] || "#6b7280";
+              return /*#__PURE__*/React.createElement("div", {
+                key: i,
+                style: { display: "flex", gap: 14, padding: "12px 0", borderBottom: i < meetings.length - 1 ? "1px solid #f0f0f0" : "none" }
+              },
+                /*#__PURE__*/React.createElement("div", { style: { minWidth: 52, textAlign: "center", paddingTop: 2 } },
+                  /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: urgent ? "#dc2626" : "#888" } }, days === 0 ? "Today" : days === 1 ? "Tmrw" : `${days}d`),
+                  /*#__PURE__*/React.createElement("div", { style: { width: 40, height: 40, borderRadius: "50%", background: typeColor, display: "flex", alignItems: "center", justifyContent: "center", margin: "4px auto 0" } },
+                    /*#__PURE__*/React.createElement("i", { className: "ti ti-calendar-event", style: { fontSize: 18, color: "#fff" } })
+                  )
+                ),
+                /*#__PURE__*/React.createElement("div", { style: { flex: 1 } },
+                  /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" } },
+                    /*#__PURE__*/React.createElement("span", { style: { fontSize: 13, fontWeight: 700, color: NAVY } }, e.contact || "TBD"),
+                    e.org && /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: "#555" } }, `— ${e.org}`),
+                    /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 700, color: typeColor, textTransform: "uppercase", marginLeft: "auto" } }, e.type || "Meeting")
+                  ),
+                  /*#__PURE__*/React.createElement("div", { style: { fontSize: 11, color: "#888", marginTop: 2 } }, fmtD(e.targetDate)),
+                  e.purpose && /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: "#444", marginTop: 3 } }, e.purpose),
+                  /*#__PURE__*/React.createElement("div", { style: { fontSize: 10, color: "#aaa", marginTop: 4, fontStyle: "italic" } }, e.pursuitName)
+                )
+              );
+            })
+      )
+    )
   );
 }
 
@@ -1024,6 +1037,7 @@ function Dashboard({
 }) {
   const [showArchived, setShowArchived] = useState(false);
   const [showSubmitted, setShowSubmitted] = useState(false);
+  const [showEngModal, setShowEngModal] = useState(false);
   const importRef = useRef(null);
   const active = pursuits.filter(p => !p.archived && !p.submitted).sort((a, b) => {
     const da = a.meta.rfpRelease ? new Date(a.meta.rfpRelease) : new Date("9999-12-31");
@@ -1037,6 +1051,8 @@ function Dashboard({
     return sum + (isNaN(v) ? 0 : v * ((p.meta.estimatedValue || "").includes("M") ? 1000000 : 1));
   }, 0);
   const avgPct = active.length ? Math.round(active.reduce((s, p) => s + pursuitProgress(p).pct, 0) / active.length) : 0;
+  const _today = new Date(); _today.setHours(0,0,0,0);
+  const upcomingEngCount = active.reduce((cnt, p) => cnt + (p.callPlan.engagementTimeline || []).filter(e => e.targetDate && new Date(e.targetDate + "T12:00:00") >= _today).length, 0);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       maxWidth: 1500,
@@ -1110,17 +1126,19 @@ function Dashboard({
   }), "New Pursuit"))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "repeat(3,1fr)",
+      gridTemplateColumns: "repeat(4,1fr)",
       gap: 14,
-      marginBottom: 14
+      marginBottom: 28
     }
-  }, [["Active Pursuits", active.length, "ti-target"], ["Open Actions", active.reduce((s, p) => s + p.actionItems.open.length, 0), "ti-checkbox"], ["Total Pipeline", active.length === 0 ? "—" : totalValue > 0 ? "$" + totalValue.toLocaleString() : `${active.length} pursuits`, "ti-currency-dollar"]].map(([label, val, icon]) => /*#__PURE__*/React.createElement("div", {
+  }, [["Active Pursuits", active.length, "ti-target", null], ["Open Actions", active.reduce((s, p) => s + p.actionItems.open.length, 0), "ti-checkbox", null], ["Total Pipeline", active.length === 0 ? "—" : totalValue > 0 ? "$" + totalValue.toLocaleString() : `${active.length} pursuits`, "ti-currency-dollar", null], ["Strategic Engagement", upcomingEngCount, "ti-calendar-event", () => setShowEngModal(true)]].map(([label, val, icon, onClick]) => /*#__PURE__*/React.createElement("div", {
     key: label,
+    onClick: onClick || undefined,
     style: {
       background: "#fff",
       border: "1px solid #e8eaed",
       borderRadius: 10,
-      padding: "14px 16px"
+      padding: "14px 16px",
+      cursor: onClick ? "pointer" : "default"
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1161,7 +1179,7 @@ function Dashboard({
       color: NAVY
     }
   }, val)))),
-  /*#__PURE__*/React.createElement(StrategicEngagementBlock, { pursuits: active }), active.length === 0 && archived.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  showEngModal && /*#__PURE__*/React.createElement(StrategicEngagementModal, { pursuits: active, onClose: () => setShowEngModal(false) }), active.length === 0 && archived.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       padding: "60px 20px",
