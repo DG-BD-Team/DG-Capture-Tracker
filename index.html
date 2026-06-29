@@ -3740,7 +3740,13 @@ function PricingTab({
     label: "Estimated FTEs",
     value: pr.estimatedFtes,
     onChange: v => u("estimatedFtes", v)
-  }), /*#__PURE__*/React.createElement(FInput, {
+  }), /*#__PURE__*/React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } },
+    /*#__PURE__*/React.createElement("label", { style: { fontSize: 11, fontWeight: 600, color: "#555", textTransform: "uppercase", letterSpacing: "0.04em" } }, "Cost per FTE ($)"),
+    /*#__PURE__*/React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: NAVY, padding: "7px 10px", background: "#f0f4f8", borderRadius: 6, border: "1px solid #e0e0e0" } },
+      ptwBase > 0 && fte > 0 ? "$" + Math.round(ptwBase / fte).toLocaleString() : "—",
+      /*#__PURE__*/React.createElement("span", { style: { fontSize: 10, fontWeight: 400, color: "#888", marginLeft: 8 } }, "PTW Base ÷ FTEs")
+    )
+  ), /*#__PURE__*/React.createElement(FInput, {
     label: "Target % vs Incumbent (e.g. -5)",
     value: pr.targetPct,
     onChange: v => u("targetPct", v)
