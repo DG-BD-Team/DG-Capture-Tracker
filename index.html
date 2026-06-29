@@ -5776,6 +5776,41 @@ function PwinTab({
 // ── PURSUIT DETAIL VIEW ───────────────────────────────────────────
 // ── CAPTURE PHASES TAB ────────────────────────────────────────────
 const DG_PEOPLE = ["", "Leah Sanders", "Greg Beaulieu", "Ryan Bakazan", "Laura Magiera", "Cami Mercado", "Mike Ennis", "Ryan Lookabill", "Scott Washburn"];
+
+function ActivityTable({ activities, phase, updActivity, roster }) {
+  const done = activities.filter(a => a.status === "Complete").length;
+  const pct = activities.length ? Math.round((done / activities.length) * 100) : 0;
+  return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } },
+      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+        /*#__PURE__*/React.createElement("div", { style: { width: 3, height: 16, background: ORANGE, borderRadius: 2 } }),
+        /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: NAVY, textTransform: "uppercase", letterSpacing: "0.05em" } }, "Activities")
+      ),
+      /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: "#888" } }, done, "/", activities.length, " complete")
+    ),
+    /*#__PURE__*/React.createElement("div", { style: { height: 4, background: "#e8eaed", borderRadius: 4, marginBottom: 12, overflow: "hidden" } },
+      /*#__PURE__*/React.createElement("div", { style: { height: "100%", width: pct + "%", background: pct === 100 ? "#22c55e" : ORANGE, borderRadius: 4 } })
+    ),
+    /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
+      activities.map((a, idx) => {
+        const isChecked = a.status === "Complete";
+        const bg = idx % 2 === 0 ? "#fff" : "#fafafa";
+        return /*#__PURE__*/React.createElement("div", { key: a.id, style: { display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: bg, borderTop: idx > 0 ? "1px solid #f0f0f0" : "none" } },
+          /*#__PURE__*/React.createElement("div", {
+            onClick: () => updActivity(phase, a.id, "status", isChecked ? "" : "Complete"),
+            style: { width: 20, height: 20, borderRadius: 5, flexShrink: 0, cursor: "pointer", border: isChecked ? "none" : "2px solid #d0d5dd", background: isChecked ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center" }
+          }, isChecked && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 13, fontWeight: 700 } }, "✓")),
+          /*#__PURE__*/React.createElement("span", { style: { flex: 1, fontSize: 13, color: isChecked ? "#aaa" : "#1a1a1a", textDecoration: isChecked ? "line-through" : "none" } }, a.label),
+          /*#__PURE__*/React.createElement("select", { value: a.assignee, onChange: e => updActivity(phase, a.id, "assignee", e.target.value), style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", minWidth: 120 } },
+            ["", ...(roster || DG_PEOPLE.slice(1)).map(r => typeof r === "object" ? r.name : r)].map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Owner --"))
+          ),
+          /*#__PURE__*/React.createElement("input", { value: a.notes, onChange: e => updActivity(phase, a.id, "notes", e.target.value), placeholder: "Notes...", style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", width: 200 } })
+        );
+      })
+    )
+  );
+}
+
 function CapturePhaseTab({ data, setData, roster }) {
   const cp = data.capturePhases || {};
   const DEFAULT_P2 = [
@@ -5871,39 +5906,6 @@ function CapturePhaseTab({ data, setData, roster }) {
     );
   }
 
-  function ActivityTable({ activities, phase }) {
-    const done = activities.filter(a => a.status === "Complete").length;
-    const pct = activities.length ? Math.round((done / activities.length) * 100) : 0;
-    return /*#__PURE__*/React.createElement("div", null,
-      /*#__PURE__*/React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 } },
-        /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
-          /*#__PURE__*/React.createElement("div", { style: { width: 3, height: 16, background: ORANGE, borderRadius: 2 } }),
-          /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: NAVY, textTransform: "uppercase", letterSpacing: "0.05em" } }, "Activities")
-        ),
-        /*#__PURE__*/React.createElement("span", { style: { fontSize: 11, color: "#888" } }, done, "/", activities.length, " complete")
-      ),
-      /*#__PURE__*/React.createElement("div", { style: { height: 4, background: "#e8eaed", borderRadius: 4, marginBottom: 12, overflow: "hidden" } },
-        /*#__PURE__*/React.createElement("div", { style: { height: "100%", width: pct + "%", background: pct === 100 ? "#22c55e" : ORANGE, borderRadius: 4 } })
-      ),
-      /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden" } },
-        activities.map((a, idx) => {
-          const isChecked = a.status === "Complete";
-          const bg = idx % 2 === 0 ? "#fff" : "#fafafa";
-          return /*#__PURE__*/React.createElement("div", { key: a.id, style: { display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: bg, borderTop: idx > 0 ? "1px solid #f0f0f0" : "none" } },
-            /*#__PURE__*/React.createElement("div", {
-              onClick: () => updActivity(phase, a.id, "status", isChecked ? "" : "Complete"),
-              style: { width: 20, height: 20, borderRadius: 5, flexShrink: 0, cursor: "pointer", border: isChecked ? "none" : "2px solid #d0d5dd", background: isChecked ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center" }
-            }, isChecked && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 13, fontWeight: 700 } }, "✓")),
-            /*#__PURE__*/React.createElement("span", { style: { flex: 1, fontSize: 13, color: isChecked ? "#aaa" : "#1a1a1a", textDecoration: isChecked ? "line-through" : "none" } }, a.label),
-            /*#__PURE__*/React.createElement("select", { value: a.assignee, onChange: e => updActivity(phase, a.id, "assignee", e.target.value), style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", minWidth: 120 } },
-              ["", ...(roster || DG_PEOPLE.slice(1)).map(r => typeof r === "object" ? r.name : r)].map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Owner --"))
-            ),
-            /*#__PURE__*/React.createElement("input", { value: a.notes, onChange: e => updActivity(phase, a.id, "notes", e.target.value), placeholder: "Notes...", style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", width: 200 } })
-          );
-        })
-      )
-    );
-  }
 
   function SectionLabel({ children }) {
     return /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, marginTop: 20 } },
@@ -5977,7 +5979,7 @@ function CapturePhaseTab({ data, setData, roster }) {
     // ── Phase 2 ──
     /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
       /*#__PURE__*/React.createElement(PhaseHeader, { number: "2", title: "Customer & Mission Assessment", objective: "Understand the customer's mission and future needs.", timeline: "Ongoing — typically 12+ months out" }),
-      /*#__PURE__*/React.createElement(ActivityTable, { activities: p2activities, phase: "phase2" }),
+      /*#__PURE__*/React.createElement(ActivityTable, { activities: p2activities, phase: "phase2", updActivity: updActivity, roster: roster }),
 
       // Stakeholder Map
       /*#__PURE__*/React.createElement(SectionLabel, null, "Stakeholder Map / Key Decision Makers"),
@@ -6045,7 +6047,7 @@ function CapturePhaseTab({ data, setData, roster }) {
     // ── Phase 3 ──
     /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
       /*#__PURE__*/React.createElement(PhaseHeader, { number: "3", title: "Competitive Intelligence / Black Hat", objective: "Understand competitors and likely strategies.", timeline: "9–12 months out, ongoing" }),
-      /*#__PURE__*/React.createElement(ActivityTable, { activities: p3activities, phase: "phase3" }),
+      /*#__PURE__*/React.createElement(ActivityTable, { activities: p3activities, phase: "phase3", updActivity: updActivity, roster: roster }),
 
       // SWOT
       /*#__PURE__*/React.createElement(SectionLabel, null, "D&G SWOT Analysis"),
@@ -6073,7 +6075,7 @@ function CapturePhaseTab({ data, setData, roster }) {
     // ── Phase 4 ──
     /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
       /*#__PURE__*/React.createElement(PhaseHeader, { number: "4", title: "Staffing & Teaming Strategy", objective: "Build a realistic staffing and partner approach.", timeline: "9–12 months out, ongoing" }),
-      /*#__PURE__*/React.createElement(ActivityTable, { activities: p4activities, phase: "phase4" }),
+      /*#__PURE__*/React.createElement(ActivityTable, { activities: p4activities, phase: "phase4", updActivity: updActivity, roster: roster }),
 
       // Deliverable notes
       /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 4 } },
