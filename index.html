@@ -2289,6 +2289,7 @@ function ChecklistTab({
       } : i)
     }
   }));
+  const [hideComplete, setHideComplete] = React.useState(false);
   const all = sections.flatMap(s => data.checklist[s.key]);
   const done = all.filter(i => i.status === "Complete").length;
   const is = {
@@ -2318,12 +2319,13 @@ function ChecklistTab({
       fontWeight: 700,
       color: NAVY
     }
-  }, "Overall Progress"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 13,
-      color: "#888"
-    }
-  }, done, " of ", all.length, " complete")), /*#__PURE__*/React.createElement(PBar, {
+  }, "Overall Progress"), /*#__PURE__*/React.createElement("div", { style: { display:"flex", alignItems:"center", gap:12 } },
+    /*#__PURE__*/React.createElement("span", { style: { fontSize: 13, color: "#888" } }, done, " of ", all.length, " complete"),
+    /*#__PURE__*/React.createElement("button", {
+      onClick: () => setHideComplete(h => !h),
+      style: { fontSize:11, padding:"3px 10px", borderRadius:4, border:"1px solid #d0d5dd", background: hideComplete ? NAVY : "#fff", color: hideComplete ? "#fff" : "#555", cursor:"pointer", fontWeight:600 }
+    }, hideComplete ? "Show Completed" : "Hide Completed")
+  )), /*#__PURE__*/React.createElement(PBar, {
     value: done,
     total: all.length
   })), sections.map(({
@@ -2332,6 +2334,7 @@ function ChecklistTab({
   }) => {
     const items = data.checklist[key];
     const sd = items.filter(i => i.status === "Complete").length;
+    const visibleItems = hideComplete ? items.filter(i => i.status !== "Complete") : items;
     return /*#__PURE__*/React.createElement("div", {
       key: key,
       style: {
@@ -2417,7 +2420,7 @@ function ChecklistTab({
         fontWeight: 700,
         color: "#666"
       }
-    }, "Notes"))), /*#__PURE__*/React.createElement("tbody", null, items.map((item, idx) => /*#__PURE__*/React.createElement("tr", {
+    }, "Notes"))), /*#__PURE__*/React.createElement("tbody", null, visibleItems.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", { colSpan: 4, style: { padding:"12px", textAlign:"center", color:"#888", fontSize:12 } }, "All items complete")), visibleItems.map((item, idx) => /*#__PURE__*/React.createElement("tr", {
       key: item.id,
       style: {
         borderTop: idx > 0 ? "1px solid #eee" : undefined,
