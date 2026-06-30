@@ -2865,7 +2865,7 @@ function CapMatrixTab({
         )
       ),
       CE("td", { style: { padding: "8px 14px" } },
-        CE("input", { value: ta.description, onChange: e => updTA(i, "description", e.target.value), placeholder: "Description...", style: inpS })
+        CE("textarea", { value: ta.description, onChange: e => { updTA(i, "description", e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }, placeholder: "Description...", rows: 1, style: { ...inpS, resize: "none", overflow: "hidden", lineHeight: 1.5 } })
       ),
       CE("td", { style: { padding: "8px 14px", textAlign: "center" } },
         CE("select", { value: ta.experience, onChange: e => updTA(i, "experience", e.target.value), style: es(ta.experience) },
@@ -2883,7 +2883,7 @@ function CapMatrixTab({
             )
           ),
           CE("td", { style: { padding: "6px 14px" } },
-            CE("textarea", { value: st.description || "", onChange: e => updSubTask(i, j, "description", e.target.value), rows: 2, placeholder: "Description...", style: { ...inpS, resize: "vertical", lineHeight: 1.5 } })
+            CE("textarea", { value: st.description || "", onChange: e => { updSubTask(i, j, "description", e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }, rows: 1, placeholder: "Description...", style: { ...inpS, resize: "none", overflow: "hidden", lineHeight: 1.5 } })
           ),
           CE("td", { style: { padding: "6px 14px", textAlign: "center" } },
             CE("button", { onClick: () => delSubTask(i, j), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
