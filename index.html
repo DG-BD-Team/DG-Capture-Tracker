@@ -2528,6 +2528,10 @@ function CapMatrixTab({
     a[i] = { ...a[i], subTasks: subs };
     u("taskAreas", a);
   };
+  const delTA = (i) => {
+    if (!window.confirm("Delete this task area and all its sub-tasks?")) return;
+    u("taskAreas", data.capMatrix.taskAreas.filter((_, k) => k !== i));
+  };
   const [expandedTA, setExpandedTA] = useState({});
   const DEFAULT_TASK_AREAS = [
     { id: 0, label: "Task Area 1", description: "", experience: "", subTasks: [] },
@@ -2851,7 +2855,7 @@ function CapMatrixTab({
       fontWeight: 700,
       width: "16%"
     }
-  }, "D&G Experience"))), /*#__PURE__*/React.createElement("tbody", null, cm.taskAreas.flatMap((ta, i) => {
+  }, "D&G Experience"), /*#__PURE__*/React.createElement("th", { style: { padding: "10px 6px", width: 32 } })))), /*#__PURE__*/React.createElement("tbody", null, cm.taskAreas.flatMap((ta, i) => {
     const CE = React.createElement;
     const isExp = !!expandedTA[i];
     const subs = ta.subTasks || [];
@@ -2871,6 +2875,9 @@ function CapMatrixTab({
         CE("select", { value: ta.experience, onChange: e => updTA(i, "experience", e.target.value), style: es(ta.experience) },
           ["", "High", "Medium", "Low"].map(o => CE("option", { key: o, value: o }, o || "—"))
         )
+      ),
+      CE("td", { style: { padding: "8px 10px", textAlign: "center", width: 32 } },
+        CE("button", { onClick: () => delTA(i), title: "Delete task area", style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 0, transition: "color 0.15s" }, onMouseEnter: e => e.target.style.color="#dc2626", onMouseLeave: e => e.target.style.color="#ccc" }, "×")
       )
     ));
     if (isExp) {
@@ -2886,7 +2893,7 @@ function CapMatrixTab({
             CE("textarea", { value: st.description || "", onChange: e => { updSubTask(i, j, "description", e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }, rows: 1, placeholder: "Description...", style: { ...inpS, resize: "none", overflow: "hidden", lineHeight: 1.5 } })
           ),
           CE("td", { style: { padding: "6px 14px", textAlign: "center" } },
-            CE("button", { onClick: () => delSubTask(i, j), style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1 } }, "×")
+            CE("button", { onClick: () => delSubTask(i, j), title: "Delete sub-task", style: { background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: 0, transition: "color 0.15s" }, onMouseEnter: e => e.target.style.color="#dc2626", onMouseLeave: e => e.target.style.color="#ccc" }, "×")
           )
         ));
       });
