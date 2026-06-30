@@ -1963,12 +1963,22 @@ function GateTab({
   const uMeta = (k, v) => setData(p => ({ ...p, meta: { ...p.meta, [k]: v } }));
   const g = data.gateReview,
     m = data.meta;
-  const gPartners = (g.teamingPartners && g.teamingPartners.length > 0)
+  const gMergeNames = (tabNames, stored, makeEntry) => {
+    const out = []; const seen = new Set();
+    tabNames.forEach(name => { const key = name.toLowerCase(); if (seen.has(key)) return; const ex = stored.find(p => (p.name||"").trim().toLowerCase() === key); out.push(ex || makeEntry(name)); seen.add(key); });
+    stored.forEach(p => { const key = (p.name||"").trim().toLowerCase(); if (!seen.has(key) && key) { out.push(p); seen.add(key); } });
+    return out;
+  };
+  const storedGPartners = (g.teamingPartners && g.teamingPartners.length > 0)
     ? g.teamingPartners
     : g.teamingPartner ? [{name: g.teamingPartner, workshare: g.teamingPct || "", nda: false, ta: false}] : [];
-  const gRivals = (g.competitors && g.competitors.length > 0)
+  const storedGRivals = (g.competitors && g.competitors.length > 0)
     ? g.competitors
     : g.competition ? [{name: g.competition}] : [];
+  const teamingTabNames = (data.teaming || []).map(t => (t.name || "").trim()).filter(Boolean);
+  const competitionTabNames = (data.competition || []).map(c => (c.name || "").trim()).filter(Boolean);
+  const gPartners = gMergeNames(teamingTabNames, storedGPartners, name => ({ name, workshare: "", nda: false, ta: false }));
+  const gRivals = gMergeNames(competitionTabNames, storedGRivals, name => ({ name }));
   const updGPartner = (i, field, val) => { const arr = [...gPartners]; arr[i] = {...arr[i], [field]: val}; u("teamingPartners", arr); };
   const addGPartner = () => u("teamingPartners", [...gPartners, {name: "", workshare: "", nda: false, ta: false}]);
   const removeGPartner = i => u("teamingPartners", gPartners.filter((_, j) => j !== i));
