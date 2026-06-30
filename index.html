@@ -2929,123 +2929,44 @@ function IncumbentTab({
   data,
   setData
 }) {
-  const fields = [{
-    key: "company",
-    label: "Company Name"
-  }, {
-    key: "uei",
-    label: "UEI"
-  }, {
-    key: "setAside",
-    label: "Set-Aside"
-  }, {
-    key: "naics",
-    label: "NAICS"
-  }, {
-    key: "co",
-    label: "Contracting Officer"
-  }, {
-    key: "contractType",
-    label: "Contract Type"
-  }, {
-    key: "contractNumber",
-    label: "Contract Number"
-  }, {
-    key: "vehicle",
-    label: "Contract Vehicle"
-  }, {
-    key: "description",
-    label: "Description"
-  }, {
-    key: "ceiling",
-    label: "Ceiling Value",
-    currency: true
-  }, {
-    key: "obligated",
-    label: "$ Obligated to Date",
-    currency: true
-  }, {
-    key: "popStart",
-    label: "PoP Start",
-    type: "date"
-  }, {
-    key: "popEnd",
-    label: "PoP End",
-    type: "date"
-  }, {
-    key: "subs",
-    label: "Subcontractors"
-  }, {
-    key: "subsQualified",
-    label: "Subs Qualified to Bid?",
-    options: ["", "Yes", "No", "Unsure"]
-  }, {
-    key: "ftes",
-    label: "# of FTEs"
-  }, {
-    key: "bidders",
-    label: "# of Bidders Previously"
-  }, {
-    key: "qualifiedToBid",
-    label: "Qualified to Bid?",
-    options: ["", "Yes", "No"]
-  }, {
-    key: "govwinLink",
-    label: "GovWin Link"
-  }, {
-    key: "usaspendingLink",
-    label: "USASpending Link"
-  }, {
-    key: "notes",
-    label: "Incumbent Intel Notes",
-    type: "textarea"
-  }];
   const upd = (w, k, v) => setData(p => ({
     ...p,
-    incumbent: {
-      ...p.incumbent,
-      [w]: {
-        ...p.incumbent[w],
-        [k]: v
-      }
-    }
+    incumbent: { ...p.incumbent, [w]: { ...p.incumbent[w], [k]: v } }
   }));
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 20
-    }
-  }, ["current", "previous"].map(w => /*#__PURE__*/React.createElement("div", {
-    key: w
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: NAVY,
-      color: "#fff",
-      borderRadius: "8px 8px 0 0",
-      padding: "10px 16px",
-      fontSize: 13,
-      fontWeight: 700
-    }
-  }, w === "current" ? "Current Incumbent" : "Previous Incumbent"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      border: "1px solid #e8eaed",
-      borderTop: "none",
-      borderRadius: "0 0 8px 8px",
-      padding: 16,
-      display: "grid",
-      gridTemplateColumns: "repeat(3, 1fr)",
-      gap: 10
-    }
-  }, fields.map(f => /*#__PURE__*/React.createElement(FInput, {
-    key: f.key,
-    label: f.label,
-    value: data.incumbent[w][f.key],
-    onChange: v => upd(w, f.key, v),
-    type: f.type || "text",
-    options: f.options,
-    currency: !!f.currency
-  }))))));
+  const ROWS = [
+    { cols: 3, fields: [{ key:"company", label:"Company Name" }, { key:"uei", label:"UEI" }, { key:"naics", label:"NAICS" }] },
+    { cols: 3, fields: [{ key:"contractNumber", label:"Contract Number" }, { key:"vehicle", label:"Contract Vehicle" }, { key:"setAside", label:"Set-Aside" }] },
+    { cols: 2, fields: [{ key:"co", label:"Contracting Officer" }, { key:"contractType", label:"Contract Type" }] },
+    { cols: 2, fields: [{ key:"ceiling", label:"Ceiling Value", currency:true }, { key:"obligated", label:"$ Obligated to Date", currency:true }] },
+    { cols: 2, fields: [{ key:"popStart", label:"PoP Start", type:"date" }, { key:"popEnd", label:"PoP End", type:"date" }] },
+    { cols: 1, fields: [{ key:"description", label:"Description" }] },
+    { cols: 3, fields: [{ key:"subs", label:"Subcontractors" }, { key:"bidders", label:"# of Bidders Previously" }, { key:"ftes", label:"# of FTEs" }] },
+    { cols: 2, fields: [{ key:"subsQualified", label:"Subs Qualified to Bid?", options:["","Yes","No","Unsure"] }, { key:"qualifiedToBid", label:"Qualified to Bid?", options:["","Yes","No"] }] },
+    { cols: 2, fields: [{ key:"govwinLink", label:"GovWin Link" }, { key:"usaspendingLink", label:"USASpending Link" }] },
+    { cols: 1, fields: [{ key:"notes", label:"Incumbent Intel Notes", type:"textarea" }] },
+  ];
+  return /*#__PURE__*/React.createElement("div", { style: { display:"flex", flexDirection:"column", gap:20 } },
+    ["current", "previous"].map(w => /*#__PURE__*/React.createElement("div", { key: w },
+      /*#__PURE__*/React.createElement("div", { style: { background:NAVY, color:"#fff", borderRadius:"8px 8px 0 0", padding:"10px 16px", fontSize:13, fontWeight:700 } },
+        w === "current" ? "Current Incumbent" : "Previous Incumbent"
+      ),
+      /*#__PURE__*/React.createElement("div", { style: { border:"1px solid #e8eaed", borderTop:"none", borderRadius:"0 0 8px 8px", padding:16, display:"flex", flexDirection:"column", gap:10 } },
+        ROWS.map((row, ri) =>
+          /*#__PURE__*/React.createElement("div", { key: ri, style: { display:"grid", gridTemplateColumns:`repeat(${row.cols}, 1fr)`, gap:10 } },
+            row.fields.map(f => /*#__PURE__*/React.createElement(FInput, {
+              key: f.key,
+              label: f.label,
+              value: (data.incumbent[w] || {})[f.key] || "",
+              onChange: v => upd(w, f.key, v),
+              type: f.type || "text",
+              options: f.options,
+              currency: !!f.currency
+            }))
+          )
+        )
+      )
+    ))
+  );
 }
 function CallPlanTab({
   data,
