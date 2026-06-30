@@ -2250,8 +2250,10 @@ function GateTab({
 }
 function ChecklistTab({
   data,
-  setData
+  setData,
+  roster
 }) {
+  const rosterNames = ["", ...(Array.isArray(roster) ? roster.map(r => r.name).filter(Boolean) : [])];
   const sections = [{
     key: "misc",
     title: "Miscellaneous"
@@ -2452,12 +2454,11 @@ function ChecklistTab({
       style: {
         padding: "8px 12px"
       }
-    }, /*#__PURE__*/React.createElement("input", {
-      value: item.assignee,
+    }, /*#__PURE__*/React.createElement("select", {
+      value: item.assignee || "",
       onChange: e => upd(key, item.id, "assignee", e.target.value),
-      placeholder: "Name",
       style: is
-    })), /*#__PURE__*/React.createElement("td", {
+    }, rosterNames.map(n => /*#__PURE__*/React.createElement("option", { key: n, value: n }, n || "-- Assign --")))), /*#__PURE__*/React.createElement("td", {
       style: {
         padding: "8px 12px"
       }
@@ -6137,7 +6138,8 @@ function PursuitView({
     }),
     checklist: /*#__PURE__*/React.createElement(ChecklistTab, {
       data: data,
-      setData: setData
+      setData: setData,
+      roster: roster
     }),
     capturePhases: /*#__PURE__*/React.createElement(CapturePhaseTab, {
       data: data,
