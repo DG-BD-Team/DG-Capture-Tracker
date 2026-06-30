@@ -2997,18 +2997,18 @@ function CallPlanTab({
   const sections = [{
     key: "govStaff",
     title: "Government Staff — Relationship Map",
-    cols: ["Name", "Title / Role", "Org", "Tier", "Relationship\n(1–5)", "Influence", "Disposition", "LinkedIn/Bio", "Email", "Phone", "Reachout POC", "Last Contact", "Vision / Goals", "Hot Buttons", "Shaping Opportunity", "Competitor Relationships", "Notes"],
-    widths: { "Name": 140, "Title / Role": 140 },
+    cols: ["Name", "Title / Org", "Tier", "Relationship\n(1–5)", "Influence", "Disposition", "LinkedIn/Bio", "Email", "Phone", "Reachout POC", "Last Contact", "Vision / Goals", "Hot Buttons", "Shaping Opportunity", "Competitor Relationships", "Notes"],
+    widths: { "Name": 140, "Title / Org": 160 },
     selects: { "Tier": TIER_OPTS, "Influence": INFLUENCE_OPTS, "Disposition": DISPOSITION_OPTS, "Relationship\n(1–5)": REL_OPTS }
   }, {
     key: "evalBoard",
     title: "Evaluation Board",
-    cols: ["Name", "Title", "Org", "Tier", "Relationship\n(1–5)", "Influence", "Disposition", "LinkedIn/Bio", "Eval Board?", "Vision / Goals", "Hot Buttons", "Shaping Opportunity", "Competitor Relationships", "Notes"],
+    cols: ["Name", "Title / Org", "Tier", "Relationship\n(1–5)", "Influence", "Disposition", "LinkedIn/Bio", "Eval Board?", "Vision / Goals", "Hot Buttons", "Shaping Opportunity", "Competitor Relationships", "Notes"],
     selects: { "Tier": TIER_OPTS, "Influence": INFLUENCE_OPTS, "Disposition": DISPOSITION_OPTS, "Relationship\n(1–5)": REL_OPTS }
   }, {
     key: "incumbentStaff",
     title: "Incumbent Staff Intel",
-    cols: ["Name", "Title", "Org", "LinkedIn/Bio", "Yrs at Agency", "Customer Relationship", "Education", "Certs", "Relevant Experience", "Recruitable?", "Notes"],
+    cols: ["Name", "Title / Org", "LinkedIn/Bio", "Yrs at Agency", "Customer Relationship", "Education", "Certs", "Relevant Experience", "Recruitable?", "Notes"],
     selects: { "Recruitable?": ["", "Yes", "No", "Maybe"] }
   }, {
     key: "competitorRecruiting",
