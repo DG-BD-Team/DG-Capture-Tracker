@@ -3012,8 +3012,8 @@ function IncumbentTab({
   }));
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
+      display: "flex",
+      flexDirection: "column",
       gap: 20
     }
   }, ["current", "previous"].map(w => /*#__PURE__*/React.createElement("div", {
@@ -3033,8 +3033,8 @@ function IncumbentTab({
       borderTop: "none",
       borderRadius: "0 0 8px 8px",
       padding: 16,
-      display: "flex",
-      flexDirection: "column",
+      display: "grid",
+      gridTemplateColumns: "repeat(3, 1fr)",
       gap: 10
     }
   }, fields.map(f => /*#__PURE__*/React.createElement(FInput, {
