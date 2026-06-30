@@ -1988,10 +1988,14 @@ function GateTab({
   }, /*#__PURE__*/React.createElement("i", { className: "ti ti-printer", style: { fontSize: 14 }, "aria-hidden": "true" }), "Print Gate Review")), /*#__PURE__*/React.createElement(Sec, {
     title: "Contract Summary"
   }, /*#__PURE__*/React.createElement(Grid, {
-    cols: 3
+    cols: 4
   }, /*#__PURE__*/React.createElement(FInput, {
     label: "Customer",
     value: m.customer,
+    onChange: () => {}
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Contract Vehicle",
+    value: m.contractVehicle,
     onChange: () => {}
   }), /*#__PURE__*/React.createElement(FInput, {
     label: "Competition Type",
