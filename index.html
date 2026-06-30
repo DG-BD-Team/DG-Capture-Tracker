@@ -1978,7 +1978,7 @@ function GateTab({
   const toggleStyle = (on) => ({ width: 26, height: 26, borderRadius: 5, border: on ? "none" : "2px solid #d0d5dd", background: on ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: on ? "0 0 0 3px " + ORANGE + "33" : "none" });
   const pastPerfs = (g.ddPastPerfs || []).map(pp => typeof pp === "string" ? {customer: "", title: pp, value: "", ftes: ""} : pp);
   const updPP = (i, field, val) => { const arr = [...pastPerfs]; arr[i] = {...arr[i], [field]: val}; u("ddPastPerfs", arr); };
-  const addPP = () => u("ddPastPerfs", [...pastPerfs, {customer: "", title: "", value: "", ftes: ""}]);
+  const addPP = () => u("ddPastPerfs", [...pastPerfs, {company: "D&G Solutions", customer: "", title: "", value: "", ftes: ""}]);
   const removePP = i => u("ddPastPerfs", pastPerfs.filter((_, j) => j !== i));
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: { display: "flex", justifyContent: "flex-end", marginBottom: 14 }
@@ -2186,10 +2186,11 @@ function GateTab({
     value: g.smeReviewer,
     onChange: v => u("smeReviewer", v)
   }))), /*#__PURE__*/React.createElement(Sec, {
-    title: "D&G Past Performances"
+    title: "Past Performance"
   }, /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginBottom: 10 } },
-    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "24px 160px 1fr 100px 80px 28px", gap: 6, padding: "7px 12px", background: "#f5f6fa", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em" } },
+    /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "24px 150px 150px 1fr 100px 80px 28px", gap: 6, padding: "7px 12px", background: "#f5f6fa", fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em" } },
       /*#__PURE__*/React.createElement("span", null, "#"),
+      /*#__PURE__*/React.createElement("span", null, "Company"),
       /*#__PURE__*/React.createElement("span", null, "Customer"),
       /*#__PURE__*/React.createElement("span", null, "Contract Title"),
       /*#__PURE__*/React.createElement("span", { style: { textAlign: "center" } }, "Value"),
@@ -2198,9 +2199,15 @@ function GateTab({
     ),
     pastPerfs.map((pp, i) => /*#__PURE__*/React.createElement("div", {
       key: i,
-      style: { display: "grid", gridTemplateColumns: "24px 160px 1fr 100px 80px 28px", alignItems: "center", gap: 6, padding: "7px 12px", borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }
+      style: { display: "grid", gridTemplateColumns: "24px 150px 150px 1fr 100px 80px 28px", alignItems: "center", gap: 6, padding: "7px 12px", borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }
     },
       /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, color: "#aaa", fontWeight: 700 } }, i + 1),
+      /*#__PURE__*/React.createElement("input", { list: "pp-co-"+i, value: pp.company !== undefined ? pp.company : "D&G Solutions", onChange: e => updPP(i, "company", e.target.value), style: { width: "100%", padding: "5px 8px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", boxSizing: "border-box" } }),
+      /*#__PURE__*/React.createElement("datalist", { id: "pp-co-"+i },
+        /*#__PURE__*/React.createElement("option", { value: "D&G Solutions" }),
+        /*#__PURE__*/React.createElement("option", { value: "Subcontractor" }),
+        /*#__PURE__*/React.createElement("option", { value: "Teaming Partner" })
+      ),
       ...[["customer","Customer..."],["title","Contract title..."],["value","$0"],["ftes","0"]].map(([field, ph]) => {
         const stl = { width: "100%", padding: "5px 8px", fontSize: 12, borderRadius: 5, border: "1px solid #d0d5dd", background: "transparent", color: "#1a1a1a", fontFamily: "inherit", boxSizing: "border-box" };
         return field === "value"
