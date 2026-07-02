@@ -3683,8 +3683,11 @@ function PricingTab({
   const lastOYKey = OY_ORDER.find(k => byYear[k] > 0);
   const lastOYAmt = lastOYKey ? byYear[lastOYKey] : 0;
   const targetDiscount = pr.targetPct ? parseFloat(pr.targetPct) / 100 : -0.05;
-  const ptwBase = lastOYAmt > 0 ? lastOYAmt * (1 + targetDiscount) : 0;
-  const ptwYears = lastOYAmt > 0
+  const priorFtes = parseFloat(pr.priorFtes) || 0;
+  const fteFactor = (priorFtes > 0 && fte > 0) ? fte / priorFtes : 1;
+  const rebasedOYAmt = lastOYAmt * fteFactor;
+  const ptwBase = rebasedOYAmt > 0 ? rebasedOYAmt * (1 + targetDiscount) : 0;
+  const ptwYears = rebasedOYAmt > 0
     ? [{ label: "Base Year (PTW)", val: ptwBase }, ...Array.from({ length: 4 }, (_, i) => ({ label: `OY${i+1}`, val: ptwBase * Math.pow(1.03, i+1) }))]
     : [];
   const is = {
@@ -3730,9 +3733,13 @@ function PricingTab({
     onChange: v => uMeta("popEnd", v),
     type: "date"
   }), /*#__PURE__*/React.createElement(FInput, {
-    label: "Estimated FTEs",
+    label: "Estimated FTEs (This Contract)",
     value: pr.estimatedFtes,
     onChange: v => u("estimatedFtes", v)
+  }), /*#__PURE__*/React.createElement(FInput, {
+    label: "Prior Contract FTEs (for rebaseline)",
+    value: pr.priorFtes,
+    onChange: v => u("priorFtes", v)
   }), /*#__PURE__*/React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 4 } },
     /*#__PURE__*/React.createElement("label", { style: { fontSize: 11, fontWeight: 600, color: "#555", textTransform: "uppercase", letterSpacing: "0.04em" } }, "Cost per FTE ($)"),
     /*#__PURE__*/React.createElement("div", { style: { fontSize: 14, fontWeight: 700, color: NAVY, padding: "7px 10px", background: "#f0f4f8", borderRadius: 6, border: "1px solid #e0e0e0" } },
@@ -3757,7 +3764,7 @@ function PricingTab({
       marginBottom: 12
     }
   }, lastOYAmt > 0
-      ? `Based on last OY (${lastOYKey}: ${fmt(lastOYAmt)}) ${targetDiscount <= 0 ? "−" : "+"} ${Math.abs(parseFloat(pr.targetPct || -5))}% (Target % vs Incumbent), then +3%/year escalation.`
+      ? `Based on last OY (${lastOYKey}: ${fmt(lastOYAmt)})${priorFtes > 0 && fte > 0 && fteFactor !== 1 ? ` rebaselined ${priorFtes}→${fte} FTEs (×${fteFactor.toFixed(3)}) = ${fmt(rebasedOYAmt)}` : ""} ${targetDiscount <= 0 ? "−" : "+"} ${Math.abs(parseFloat(pr.targetPct || -5))}% (Target % vs Incumbent), then +3%/year escalation.`
       : "Add FPDS data above to auto-calculate PTW. Ensure at least one OY row is entered."),
     ptwYears.length > 0
       ? /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 } },
@@ -3774,7 +3781,7 @@ function PricingTab({
     ptwYears.length > 0 && /*#__PURE__*/React.createElement("div", { style: { marginTop: 10, padding: "8px 12px", background: NAVY + "11", borderRadius: 6, fontSize: 11, color: NAVY } },
       /*#__PURE__*/React.createElement("strong", null, "Total PTW (Base+OYs): "),
       fmt(ptwYears.reduce((s, y) => s + y.val, 0)),
-      "  •  Last OY used: ", lastOYKey, " = ", fmt(lastOYAmt), "  •  PTW Base = Last OY ", targetDiscount <= 0 ? "−" : "+", " ", Math.abs(parseFloat(pr.targetPct || -5)), "%  •  OYs escalate +3%/yr"
+      "  •  Last OY used: ", lastOYKey, " = ", fmt(lastOYAmt), priorFtes > 0 && fteFactor !== 1 ? `  •  FTE rebaseline: ${priorFtes}→${fte} FTEs = ${fmt(rebasedOYAmt)}` : "", "  •  PTW Base = Rebaselined OY ", targetDiscount <= 0 ? "−" : "+", " ", Math.abs(parseFloat(pr.targetPct || -5)), "%  •  OYs escalate +3%/yr"
     )), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 12
