@@ -1040,6 +1040,9 @@ function Dashboard({
   const [showEngModal, setShowEngModal] = useState(false);
   const importRef = useRef(null);
   const active = pursuits.filter(p => !p.archived && !p.submitted).sort((a, b) => {
+    const aRFP = a.meta.pursuitPhase === "RFP" ? 0 : 1;
+    const bRFP = b.meta.pursuitPhase === "RFP" ? 0 : 1;
+    if (aRFP !== bRFP) return aRFP - bRFP;
     const da = a.meta.rfpRelease ? new Date(a.meta.rfpRelease) : new Date("9999-12-31");
     const db = b.meta.rfpRelease ? new Date(b.meta.rfpRelease) : new Date("9999-12-31");
     return da - db;
@@ -1652,7 +1655,7 @@ function MetaTab({
       label: "Pursuit Phase",
       value: m.pursuitPhase || "Identification",
       onChange: v => u("pursuitPhase", v),
-      options: ["Identification", "Qualification", "Capture", "Submitted", "Won", "Lost"]
+      options: ["Identification", "Qualification", "Capture", "RFP", "Submitted", "Won", "Lost"]
     })
   ), /*#__PURE__*/React.createElement(FInput, {
     label: "Customer / Agency",
