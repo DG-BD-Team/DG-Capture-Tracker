@@ -1368,7 +1368,9 @@ function PursuitCard({
       const c = map[ph] || { bg: "#f1f1f1", text: "#555" };
       return { fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: c.bg, color: c.text };
     })()
-  }, p.meta.pursuitPhase), sa && /*#__PURE__*/React.createElement("span", {
+  }, p.meta.pursuitPhase), p.meta.rfpRelease && /*#__PURE__*/React.createElement("span", {
+    style: { fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: "#fff3e0", color: "#e65100", border: "1px solid #ffcc80" }
+  }, "RFP: ", new Date(p.meta.rfpRelease + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })), sa && /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 11,
       fontWeight: 700,
