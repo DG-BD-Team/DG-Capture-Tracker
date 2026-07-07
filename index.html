@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/tabler-icons.min.css">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/libs/pptxgen.bundle.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f6f9;color:#1a1a1a}
@@ -1924,6 +1925,153 @@ function MetaTab({
     }
   }))))));
 }
+function exportGateReviewPPTX(data) {
+  const g = data.gateReview || {};
+  const m = data.meta || {};
+  const pw = data.pwin || {};
+  const { composite, pwin: pwinPct } = calcPwin(pw.scores || {}, pw.weights);
+  const fmtDate = s => s ? new Date(s + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+  const fmt$ = v => v ? "$" + Math.round(parseFloat(v)).toLocaleString() : "";
+  const NAVY = "04122A", ORANGE = "DE7F26", WHITE = "FFFFFF", LGRAY = "F4F6F9", DGRAY = "555555";
+
+  const prs = new PptxGenJS();
+  prs.layout = "LAYOUT_WIDE";
+  prs.author = "D&G Solutions";
+  prs.company = "D&G Solutions";
+  prs.subject = "Gate Review — " + (m.opportunityName || "Untitled");
+  prs.title = "Gate Review — " + (m.opportunityName || "Untitled");
+
+  const addHeader = (slide, title) => {
+    slide.addShape(prs.ShapeType.rect, { x: 0, y: 0, w: "100%", h: 1.1, fill: { color: NAVY } });
+    slide.addText("D&G SOLUTIONS — GATE REVIEW", { x: 0.4, y: 0.08, w: 9, h: 0.3, fontSize: 8, bold: true, color: "FFFFFF99", charSpacing: 2 });
+    slide.addText(title, { x: 0.4, y: 0.32, w: 9, h: 0.55, fontSize: 20, bold: true, color: WHITE });
+    slide.addText(m.opportunityName || "Untitled Pursuit", { x: 0.4, y: 0.72, w: 7, h: 0.28, fontSize: 10, color: "FFFFFFaa" });
+    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    slide.addText(today, { x: 8, y: 0.82, w: 2.5, h: 0.2, fontSize: 9, color: "FFFFFFaa", align: "right" });
+    slide.addShape(prs.ShapeType.rect, { x: 0, y: 1.1, w: 0.06, h: 6.9, fill: { color: ORANGE } });
+  };
+
+  const addSectionLabel = (slide, label, x, y, w) => {
+    slide.addText(label.toUpperCase(), { x, y, w, h: 0.22, fontSize: 8, bold: true, color: ORANGE, charSpacing: 1.5 });
+    slide.addShape(prs.ShapeType.line, { x, y: y + 0.22, w, h: 0, line: { color: ORANGE, width: 1 } });
+  };
+
+  const twoColRows = (slide, rows, x, y, w, colW1) => {
+    rows.filter(([,v]) => v).forEach(([label, value], i) => {
+      const ry = y + i * 0.28;
+      slide.addText(label + ":", { x, y: ry, w: colW1, h: 0.26, fontSize: 10, bold: true, color: DGRAY });
+      slide.addText(String(value), { x: x + colW1, y: ry, w: w - colW1, h: 0.26, fontSize: 10, color: "1a1a1a" });
+    });
+    return y + Math.max(rows.filter(([,v])=>v).length, 1) * 0.28;
+  };
+
+  // ── SLIDE 1: Title ──────────────────────────────────────────────────────────
+  const s1 = prs.addSlide();
+  s1.addShape(prs.ShapeType.rect, { x: 0, y: 0, w: "100%", h: "100%", fill: { color: NAVY } });
+  s1.addShape(prs.ShapeType.rect, { x: 0, y: 4.5, w: "100%", h: 3, fill: { color: ORANGE } });
+  s1.addText("GATE REVIEW", { x: 0.6, y: 0.7, w: 12, h: 0.5, fontSize: 13, bold: true, color: "FFFFFFaa", charSpacing: 4 });
+  s1.addText(m.opportunityName || "Untitled Pursuit", { x: 0.6, y: 1.3, w: 12, h: 1.4, fontSize: 36, bold: true, color: WHITE, breakLine: true });
+  const titleMeta = [m.customer, m.contractVehicle, m.setAside, m.role ? "Role: " + m.role : ""].filter(Boolean).join("   •   ");
+  s1.addText(titleMeta, { x: 0.6, y: 3.1, w: 12, h: 0.4, fontSize: 12, color: "FFFFFFbb" });
+  if (pwinPct != null) {
+    s1.addText("P(WIN)", { x: 0.6, y: 4.7, w: 3, h: 0.35, fontSize: 10, bold: true, color: WHITE, charSpacing: 2 });
+    s1.addText(Math.round(pwinPct) + "%", { x: 0.6, y: 5.0, w: 3, h: 1.0, fontSize: 52, bold: true, color: WHITE });
+  }
+  s1.addText(m.estimatedValue ? "Est. Value: " + m.estimatedValue : "", { x: 4.5, y: 4.7, w: 4, h: 0.4, fontSize: 12, color: WHITE });
+  s1.addText("Printed " + new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }), { x: 0.6, y: 6.8, w: 12, h: 0.3, fontSize: 9, color: "FFFFFFaa" });
+
+  // ── SLIDE 2: Contract Summary ───────────────────────────────────────────────
+  const s2 = prs.addSlide();
+  addHeader(s2, "Contract Summary");
+  addSectionLabel(s2, "Key Dates & Details", 0.4, 1.25, 5.8);
+  twoColRows(s2, [
+    ["Customer", m.customer],
+    ["Contract Vehicle", m.contractVehicle],
+    ["Competition Type", g.competitionType],
+    ["Contract Type", g.contractType],
+    ["RFI Release", fmtDate(g.rfiDate)],
+    ["RFP Release", fmtDate(g.rfpDate)],
+    ["Contract Award Date", fmtDate(g.awardDate)],
+    ["Contract Start Date", fmtDate(g.contractStartDate)],
+    ["Work Location", g.workLocation],
+    ["NAICS", m.naics],
+  ], 0.4, 1.55, 5.8, 2.0);
+  if (g.customerRelationship) {
+    addSectionLabel(s2, "Customer Relationship", 6.5, 1.25, 6.6);
+    s2.addText(g.customerRelationship, { x: 6.5, y: 1.55, w: 6.6, h: 1.5, fontSize: 10, color: "1a1a1a", valign: "top" });
+  }
+
+  // ── SLIDE 3: Win Strategy & SWOT ───────────────────────────────────────────
+  const s3 = prs.addSlide();
+  addHeader(s3, "Win Strategy & SWOT");
+  if (g.howToWin || g.differentiator) {
+    addSectionLabel(s3, "Win Strategy", 0.4, 1.25, 12.7);
+    let sy = 1.55;
+    if (g.howToWin) { s3.addText("How We Win: ", { x: 0.4, y: sy, w: 1.7, h: 0.26, fontSize: 10, bold: true, color: DGRAY }); s3.addText(g.howToWin, { x: 2.1, y: sy, w: 11, h: 0.26, fontSize: 10, color: "1a1a1a" }); sy += 0.3; }
+    if (g.differentiator) { s3.addText("Differentiator: ", { x: 0.4, y: sy, w: 1.7, h: 0.26, fontSize: 10, bold: true, color: DGRAY }); s3.addText(g.differentiator, { x: 2.1, y: sy, w: 11, h: 0.26, fontSize: 10, color: "1a1a1a" }); sy += 0.3; }
+  }
+  const swotItems = [
+    { label: "Strengths", val: g.strengths, fill: "e8f5e9", text: "2e7d32" },
+    { label: "Weaknesses", val: g.weaknesses, fill: "fff3e0", text: "e65100" },
+    { label: "Opportunities", val: g.opportunities, fill: "e3f2fd", text: "1565c0" },
+    { label: "Threats", val: g.threats, fill: "fce4ec", text: "c62828" },
+  ].filter(s => s.val);
+  if (swotItems.length) {
+    addSectionLabel(s3, "SWOT Analysis", 0.4, 2.3, 12.7);
+    const cols = Math.min(swotItems.length, 2);
+    const bw = 6.0, bh = 1.6;
+    swotItems.forEach((sw, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const bx = 0.4 + col * (bw + 0.4), by = 2.6 + row * (bh + 0.2);
+      s3.addShape(prs.ShapeType.rect, { x: bx, y: by, w: bw, h: bh, fill: { color: sw.fill }, line: { color: sw.text, width: 1 } });
+      s3.addText(sw.label.toUpperCase(), { x: bx + 0.15, y: by + 0.1, w: bw - 0.3, h: 0.25, fontSize: 8, bold: true, color: sw.text, charSpacing: 1.5 });
+      s3.addText(sw.val, { x: bx + 0.15, y: by + 0.38, w: bw - 0.3, h: bh - 0.5, fontSize: 10, color: "1a1a1a", valign: "top", wrap: true });
+    });
+  }
+
+  // ── SLIDE 4: Teaming, Competition & Past Performance ───────────────────────
+  const s4 = prs.addSlide();
+  addHeader(s4, "Teaming & Past Performance");
+  const gPartners = (g.teamingPartners && g.teamingPartners.length > 0) ? g.teamingPartners : [];
+  const gRivals = (g.competitors && g.competitors.length > 0) ? g.competitors : [];
+  addSectionLabel(s4, "Teaming Partners", 0.4, 1.25, 6.0);
+  if (gPartners.length) {
+    const ptRows = [["Partner", "Workshare %", "NDA", "TA"], ...gPartners.map(p => [p.name || "", p.workshare || "", p.nda ? "✓" : "—", p.ta ? "✓" : "—"])];
+    s4.addTable(ptRows, { x: 0.4, y: 1.55, w: 6.0, colW: [3.2, 1.2, 0.8, 0.8], fontSize: 10, border: { color: "e0e4ea" }, fill: { color: WHITE }, align: "left" });
+  } else { s4.addText("No teaming partners added", { x: 0.4, y: 1.55, w: 6.0, h: 0.3, fontSize: 10, color: "aaaaaa", italic: true }); }
+  addSectionLabel(s4, "Competition", 6.8, 1.25, 6.3);
+  if (gRivals.length) {
+    const rvRows = [["Competitor"], ...gRivals.map(r => [r.name || ""])];
+    s4.addTable(rvRows, { x: 6.8, y: 1.55, w: 6.3, fontSize: 10, border: { color: "e0e4ea" }, fill: { color: WHITE } });
+  } else { s4.addText("No competitors added", { x: 6.8, y: 1.55, w: 6.3, h: 0.3, fontSize: 10, color: "aaaaaa", italic: true }); }
+  const pps = (g.ddPastPerfs || []).filter(p => p.title || p.customer);
+  addSectionLabel(s4, "Past Performance", 0.4, 3.8, 12.7);
+  if (pps.length) {
+    const ppRows = [["#", "Company", "Customer", "Contract Title", "Value", "FTEs"], ...pps.map((p, i) => [String(i+1), p.company || "D&G Solutions", p.customer || "", p.title || "", p.value || "", p.ftes || ""])];
+    s4.addTable(ppRows, { x: 0.4, y: 4.1, w: 12.7, colW: [0.4, 2.0, 2.2, 4.5, 1.8, 1.0], fontSize: 10, border: { color: "e0e4ea" }, fill: { color: WHITE } });
+  } else { s4.addText("No past performances added", { x: 0.4, y: 4.1, w: 12.7, h: 0.3, fontSize: 10, color: "aaaaaa", italic: true }); }
+
+  // ── SLIDE 5: Resources & Approval ──────────────────────────────────────────
+  const s5 = prs.addSlide();
+  addHeader(s5, "Resources & Approval");
+  addSectionLabel(s5, "Leadership & Roles", 0.4, 1.25, 12.7);
+  twoColRows(s5, [
+    ["Executive Lead", g.executiveLead || m.deliveryLead],
+    ["Capture Manager", m.captureManager],
+    ["Pricing Lead", g.pricingLead],
+    ["Proposal Manager", g.proposalManager],
+    ["Approval Authority", g.approvalAuthority || m.functionalSME],
+    ["SME / Reviewer", g.smeReviewer],
+  ], 0.4, 1.55, 12.7, 2.2);
+  if (g.bid_decision) {
+    addSectionLabel(s5, "Bid Decision", 0.4, 4.0, 12.7);
+    s5.addText(g.bid_decision, { x: 0.4, y: 4.3, w: 12.7, h: 0.5, fontSize: 14, bold: true, color: NAVY });
+  }
+  s5.addText("D&G Solutions — Confidential", { x: 0.4, y: 7.0, w: 12.7, h: 0.25, fontSize: 9, color: "aaaaaa", align: "center" });
+
+  const fname = (m.opportunityName || "Gate-Review").replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "-") + "-Gate-Review.pptx";
+  prs.writeFile({ fileName: fname });
+}
 function printGateReview(data) {
   const g = data.gateReview || {};
   const m = data.meta || {};
@@ -1997,8 +2145,12 @@ function GateTab({
   const addPP = () => u("ddPastPerfs", [...pastPerfs, {company: "D&G Solutions", customer: "", title: "", value: "", ftes: ""}]);
   const removePP = i => u("ddPastPerfs", pastPerfs.filter((_, j) => j !== i));
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: { display: "flex", justifyContent: "flex-end", marginBottom: 14 }
+    style: { display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 14 }
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => exportGateReviewPPTX(data),
+    style: { display: "flex", alignItems: "center", gap: 7, padding: "8px 18px", background: ORANGE, color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer" }
+  }, /*#__PURE__*/React.createElement("i", { className: "ti ti-file-type-ppt", style: { fontSize: 14 }, "aria-hidden": "true" }), "Export PowerPoint"),
+  /*#__PURE__*/React.createElement("button", {
     onClick: () => printGateReview(data),
     style: { display: "flex", alignItems: "center", gap: 7, padding: "8px 18px", background: NAVY, color: "#fff", border: "none", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer" }
   }, /*#__PURE__*/React.createElement("i", { className: "ti ti-printer", style: { fontSize: 14 }, "aria-hidden": "true" }), "Print Gate Review")), /*#__PURE__*/React.createElement(Sec, {
