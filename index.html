@@ -5970,10 +5970,7 @@ function ActivityTable({ activities, phase, updActivity, roster }) {
             style: { width: 20, height: 20, borderRadius: 5, flexShrink: 0, cursor: "pointer", border: isChecked ? "none" : "2px solid #d0d5dd", background: isChecked ? ORANGE : "#fff", display: "flex", alignItems: "center", justifyContent: "center" }
           }, isChecked && /*#__PURE__*/React.createElement("span", { style: { color: "#fff", fontSize: 13, fontWeight: 700 } }, "✓")),
           /*#__PURE__*/React.createElement("span", { style: { flex: 1, fontSize: 13, color: isChecked ? "#aaa" : "#1a1a1a", textDecoration: isChecked ? "line-through" : "none" } }, a.label),
-          /*#__PURE__*/React.createElement("select", { value: a.assignee, onChange: e => updActivity(phase, a.id, "assignee", e.target.value), style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", minWidth: 120 } },
-            ["", ...(roster || DG_PEOPLE.slice(1)).map(r => typeof r === "object" ? r.name : r)].map(p => /*#__PURE__*/React.createElement("option", { key: p, value: p }, p || "-- Owner --"))
-          ),
-          /*#__PURE__*/React.createElement("input", { value: a.notes, onChange: e => updActivity(phase, a.id, "notes", e.target.value), placeholder: "Notes...", style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", width: 200 } })
+          /*#__PURE__*/React.createElement("input", { value: a.notes, onChange: e => updActivity(phase, a.id, "notes", e.target.value), placeholder: "Notes...", style: { fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "1px solid #d0d5dd", background: "#fff", color: "#444", flex: "0 0 66%" } })
         );
       })
     )
