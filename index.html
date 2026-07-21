@@ -5982,36 +5982,50 @@ function ActivityTable({ activities, phase, updActivity, roster }) {
 
 function CapturePhaseTab({ data, setData, roster }) {
   const cp = data.capturePhases || {};
+
+  const DEFAULT_P1 = [
+    { id:"p1a1", label:"Identify opportunity in GovWin / SAM.gov / market scan", status:"", assignee:"", notes:"" },
+    { id:"p1a2", label:"Confirm NAICS code and set-aside type", status:"", assignee:"", notes:"" },
+    { id:"p1a3", label:"Verify incumbent and current contract details", status:"", assignee:"", notes:"" },
+    { id:"p1a4", label:"Assess basic fit with D&G core capabilities", status:"", assignee:"", notes:"" },
+    { id:"p1a5", label:"Identify relevant D&G past performance", status:"", assignee:"", notes:"" },
+    { id:"p1a6", label:"Add opportunity to pipeline and assign capture lead", status:"", assignee:"", notes:"" },
+    { id:"p1a7", label:"Make initial Go / No-Go decision to advance to Qualification", status:"", assignee:"", notes:"" }
+  ];
+
   const DEFAULT_P2 = [
-    { id:"p2a1", label:"Understand customer mission and priorities", status:"", assignee:"", notes:"" },
-    { id:"p2a2", label:"Identify pain points with current contract", status:"", assignee:"", notes:"" },
-    { id:"p2a3", label:"Identify upcoming initiatives or organizational changes", status:"", assignee:"", notes:"" },
-    { id:"p2a4", label:"Assess budget environment", status:"", assignee:"", notes:"" },
-    { id:"p2a5", label:"Identify key decision makers and influencers", status:"", assignee:"", notes:"" },
-    { id:"p2a6", label:"Conduct customer meetings", status:"", assignee:"", notes:"" },
-    { id:"p2a7", label:"Identify and influence likely acquisition approach", status:"", assignee:"", notes:"" }
+    { id:"p2a1", label:"Schedule customer meeting / discovery call", status:"", assignee:"", notes:"" },
+    { id:"p2a2", label:"Identify key decision makers and influencers (COR, KO, end users)", status:"", assignee:"", notes:"" },
+    { id:"p2a3", label:"Understand customer mission priorities and pain points", status:"", assignee:"", notes:"" },
+    { id:"p2a4", label:"Assess budget environment and funding status", status:"", assignee:"", notes:"" },
+    { id:"p2a5", label:"Identify upcoming organizational or mission changes", status:"", assignee:"", notes:"" },
+    { id:"p2a6", label:"Identify and begin influencing likely acquisition approach", status:"", assignee:"", notes:"" },
+    { id:"p2a7", label:"Assess teaming needs — determine if partners are required", status:"", assignee:"", notes:"" },
+    { id:"p2a8", label:"Conduct initial Pwin scoring", status:"", assignee:"", notes:"" },
+    { id:"p2a9", label:"Gate Review — Go / No-Go decision to advance to Capture", status:"", assignee:"", notes:"" }
   ];
+
   const DEFAULT_P3 = [
-    { id:"p3a1", label:"Identify likely bidders", status:"", assignee:"", notes:"" },
-    { id:"p3a2", label:"Assess incumbent strengths and weaknesses", status:"", assignee:"", notes:"" },
-    { id:"p3a3", label:"Assess relationships and past performance", status:"", assignee:"", notes:"" },
-    { id:"p3a4", label:"Estimate competitor pricing strategy", status:"", assignee:"", notes:"" },
-    { id:"p3a5", label:"Conduct Black Hat session", status:"", assignee:"", notes:"" }
+    { id:"p3a1", label:"Develop win strategy and key discriminators", status:"", assignee:"", notes:"" },
+    { id:"p3a2", label:"Conduct customer shaping meetings", status:"", assignee:"", notes:"" },
+    { id:"p3a3", label:"Identify likely competitors and assess their strengths/weaknesses", status:"", assignee:"", notes:"" },
+    { id:"p3a4", label:"Conduct Black Hat session", status:"", assignee:"", notes:"" },
+    { id:"p3a5", label:"Develop Price-to-Win estimate", status:"", assignee:"", notes:"" },
+    { id:"p3a6", label:"Identify key personnel and begin recruiting", status:"", assignee:"", notes:"" },
+    { id:"p3a7", label:"Evaluate teaming partners — execute NDAs and Teaming Agreements", status:"", assignee:"", notes:"" },
+    { id:"p3a8", label:"Develop solution / technical approach", status:"", assignee:"", notes:"" },
+    { id:"p3a9", label:"Complete CAP Matrix", status:"", assignee:"", notes:"" },
+    { id:"p3a10", label:"Complete Gate Review and receive bid approval", status:"", assignee:"", notes:"" },
+    { id:"p3a11", label:"Submit proposal", status:"", assignee:"", notes:"" }
   ];
-  const DEFAULT_P4 = [
-    { id:"p4a1", label:"Identify key personnel requirements", status:"", assignee:"", notes:"" },
-    { id:"p4a2", label:"Assess incumbent staff retention opportunities", status:"", assignee:"", notes:"" },
-    { id:"p4a3", label:"Recruit critical personnel", status:"", assignee:"", notes:"" },
-    { id:"p4a4", label:"Evaluate teammates/JV partners", status:"", assignee:"", notes:"" },
-    { id:"p4a5", label:"Validate labor categories and salary assumptions", status:"", assignee:"", notes:"" },
-    { id:"p4a6", label:"Execute NDAs/teaming agreements", status:"", assignee:"", notes:"" }
-  ];
+
+  const p1 = cp.phase1 || {};
   const p2 = cp.phase2 || {};
   const p3 = cp.phase3 || {};
-  const p4 = cp.phase4 || {};
+  const p1activities = (p1.activities && p1.activities.length) ? p1.activities : DEFAULT_P1;
   const p2activities = (p2.activities && p2.activities.length) ? p2.activities : DEFAULT_P2;
   const p3activities = (p3.activities && p3.activities.length) ? p3.activities : DEFAULT_P3;
-  const p4activities = (p4.activities && p4.activities.length) ? p4.activities : DEFAULT_P4;
+
   const upd = (phase, field, val) => setData(prev => ({
     ...prev,
     capturePhases: {
@@ -6019,32 +6033,36 @@ function CapturePhaseTab({ data, setData, roster }) {
       [phase]: { ...(prev.capturePhases || {})[phase], [field]: val }
     }
   }));
+
   const updActivity = (phase, id, field, val) => setData(prev => {
     const ph = (prev.capturePhases || {})[phase] || {};
+    const defaults = phase === "phase1" ? DEFAULT_P1 : phase === "phase2" ? DEFAULT_P2 : DEFAULT_P3;
+    const current = (ph.activities && ph.activities.length) ? ph.activities : defaults;
     return {
       ...prev,
       capturePhases: {
         ...prev.capturePhases,
         [phase]: {
           ...ph,
-          activities: (ph.activities || []).map(a => a.id === id ? { ...a, [field]: val } : a)
+          activities: current.map(a => a.id === id ? { ...a, [field]: val } : a)
         }
       }
     };
   });
+
   const updStakeholder = (i, field, val) => setData(prev => {
     const rows = [...((prev.capturePhases?.phase2?.stakeholderMap) || [])];
     rows[i] = { ...rows[i], [field]: val };
-    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases.phase2, stakeholderMap: rows } } };
+    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases?.phase2, stakeholderMap: rows } } };
   });
   const addStakeholder = () => setData(prev => {
     const rows = [...((prev.capturePhases?.phase2?.stakeholderMap) || [])];
     rows.push({ id: `sm${Date.now()}`, name: "", title: "", org: "", influence: "", relationship: "", notes: "" });
-    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases.phase2, stakeholderMap: rows } } };
+    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases?.phase2, stakeholderMap: rows } } };
   });
   const removeStakeholder = i => setData(prev => {
     const rows = [...((prev.capturePhases?.phase2?.stakeholderMap) || [])].filter((_, j) => j !== i);
-    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases.phase2, stakeholderMap: rows } } };
+    return { ...prev, capturePhases: { ...prev.capturePhases, phase2: { ...prev.capturePhases?.phase2, stakeholderMap: rows } } };
   });
 
   const TAStyles = {
@@ -6060,81 +6078,91 @@ function CapturePhaseTab({ data, setData, roster }) {
   const REL_OPTS = ["", "Strong", "Neutral", "Weak", "Unknown"];
 
   function PhaseHeader({ number, title, objective, timeline }) {
-    return /*#__PURE__*/React.createElement("div", { style: { marginBottom: 20, padding: "16px 20px", background: NAVY, borderRadius: 10, color: "#fff" } },
-      /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
-        /*#__PURE__*/React.createElement("div", { style: { background: ORANGE, color: "#fff", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, flexShrink: 0 } }, number),
-        /*#__PURE__*/React.createElement("div", null,
-          /*#__PURE__*/React.createElement("div", { style: { fontWeight: 700, fontSize: 16 } }, title),
-          /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, opacity: 0.75, marginTop: 2 } }, timeline)
+    return React.createElement("div", { style: { marginBottom: 20, padding: "16px 20px", background: NAVY, borderRadius: 10, color: "#fff" } },
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
+        React.createElement("div", { style: { background: ORANGE, color: "#fff", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, flexShrink: 0 } }, number),
+        React.createElement("div", null,
+          React.createElement("div", { style: { fontWeight: 700, fontSize: 16 } }, title),
+          React.createElement("div", { style: { fontSize: 12, opacity: 0.75, marginTop: 2 } }, timeline)
         )
       ),
-      /*#__PURE__*/React.createElement("div", { style: { marginTop: 10, fontSize: 13, opacity: 0.9, background: "rgba(255,255,255,0.08)", borderRadius: 6, padding: "8px 12px" } },
-        /*#__PURE__*/React.createElement("span", { style: { fontWeight: 600 } }, "Objective: "),
+      React.createElement("div", { style: { marginTop: 10, fontSize: 13, opacity: 0.9, background: "rgba(255,255,255,0.08)", borderRadius: 6, padding: "8px 12px" } },
+        React.createElement("span", { style: { fontWeight: 600 } }, "Objective: "),
         objective
       )
     );
   }
 
-
   function SectionLabel({ children }) {
-    return /*#__PURE__*/React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, marginTop: 20 } },
-      /*#__PURE__*/React.createElement("div", { style: { width: 3, height: 16, background: ORANGE, borderRadius: 2 } }),
-      /*#__PURE__*/React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: NAVY, textTransform: "uppercase", letterSpacing: "0.05em" } }, children)
+    return React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10, marginTop: 20 } },
+      React.createElement("div", { style: { width: 3, height: 16, background: ORANGE, borderRadius: 2 } }),
+      React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: NAVY, textTransform: "uppercase", letterSpacing: "0.05em" } }, children)
     );
   }
 
-  // ── Phase Timeline Banner ──────────────────────────────────────────
   function PhaseBanner() {
     const today = new Date();
     const rfp = data.meta && data.meta.rfpRelease ? new Date(data.meta.rfpRelease) : null;
     const pop = data.meta && data.meta.popStart   ? new Date(data.meta.popStart)   : null;
     const phases = [
-      { num:"1", label:"Opportunity ID",      sub:"Early pipeline" },
-      { num:"2", label:"Customer & Mission",  sub:"12+ mo out" },
-      { num:"3", label:"Competitive Intel",   sub:"9-12 mo out" },
-      { num:"4", label:"Staffing & Teaming",  sub:"6-9 mo out" },
-      { num:"5", label:"Proposal",            sub:"RFP to Award" }
+      { num:"1", label:"Identification", sub:"Early pipeline" },
+      { num:"2", label:"Qualification",  sub:"12+ mo out" },
+      { num:"3", label:"Capture",        sub:"RFP to Award" }
     ];
-    let activePhase = 2;
-    if (rfp) {
+    const pursuitPhase = data.meta && data.meta.pursuitPhase;
+    let activePhase = 1;
+    if (pursuitPhase === "Qualification") activePhase = 2;
+    else if (pursuitPhase === "Capture" || pursuitPhase === "RFP" || pursuitPhase === "Submitted") activePhase = 3;
+    else if (pursuitPhase === "Identification") activePhase = 1;
+    else if (rfp) {
       const moToRfp = (rfp - today) / (1000 * 60 * 60 * 24 * 30);
-      if (moToRfp <= 0)       activePhase = 5;
-      else if (moToRfp <= 6)  activePhase = 4;
-      else if (moToRfp <= 12) activePhase = 3;
-      else                    activePhase = 2;
+      if (moToRfp <= 6) activePhase = 3;
+      else activePhase = 2;
     }
     const fmtDate = d => d ? d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" }) : null;
-    return /*#__PURE__*/React.createElement("div", { style:{ background:"#fff", border:"1px solid #e8eaed", borderRadius:12, padding:"20px 24px", marginBottom:24, boxShadow:"0 1px 4px rgba(0,0,0,0.06)" } },
-      /*#__PURE__*/React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 } },
-        /*#__PURE__*/React.createElement("div", null,
-          /*#__PURE__*/React.createElement("div", { style:{ fontSize:13, fontWeight:700, color:NAVY, textTransform:"uppercase", letterSpacing:"0.06em" } }, "Capture Phase Timeline"),
-          /*#__PURE__*/React.createElement("div", { style:{ fontSize:12, color:"#888", marginTop:3 } },
-            "Today: ", /*#__PURE__*/React.createElement("strong", null, fmtDate(today)),
-            rfp ? /*#__PURE__*/React.createElement("span", null, "  ·  RFP: ", /*#__PURE__*/React.createElement("strong", null, fmtDate(rfp)))
-                : /*#__PURE__*/React.createElement("span", { style:{ color:"#bbb" } }, "  ·  RFP date not set"),
-            pop ? /*#__PURE__*/React.createElement("span", null, "  ·  PoP Start: ", /*#__PURE__*/React.createElement("strong", null, fmtDate(pop)))
-                : /*#__PURE__*/React.createElement("span", { style:{ color:"#bbb" } }, "  ·  PoP start not set")
+    const allActs = [...p1activities, ...p2activities, ...p3activities];
+    const totalDone = allActs.filter(a => a.status === "Complete").length;
+    const totalPct = allActs.length ? Math.round((totalDone / allActs.length) * 100) : 0;
+    return React.createElement("div", { style:{ background:"#fff", border:"1px solid #e8eaed", borderRadius:12, padding:"20px 24px", marginBottom:24, boxShadow:"0 1px 4px rgba(0,0,0,0.06)" } },
+      React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 } },
+        React.createElement("div", null,
+          React.createElement("div", { style:{ fontSize:13, fontWeight:700, color:NAVY, textTransform:"uppercase", letterSpacing:"0.06em" } }, "Capture Phase Progress"),
+          React.createElement("div", { style:{ fontSize:12, color:"#888", marginTop:3 } },
+            "Today: ", React.createElement("strong", null, fmtDate(today)),
+            rfp ? React.createElement("span", null, "  ·  RFP: ", React.createElement("strong", null, fmtDate(rfp)))
+                : React.createElement("span", { style:{ color:"#bbb" } }, "  ·  RFP date not set"),
+            pop ? React.createElement("span", null, "  ·  PoP Start: ", React.createElement("strong", null, fmtDate(pop)))
+                : null
           )
         ),
-        !rfp && !pop && /*#__PURE__*/React.createElement("div", { style:{ fontSize:11, color:"#aaa", fontStyle:"italic", textAlign:"right" } }, "Set RFP Release & PoP Start in Overview tab to auto-position")
+        React.createElement("div", { style:{ textAlign:"right" } },
+          React.createElement("div", { style:{ fontSize:22, fontWeight:800, color: totalPct===100?"#22c55e":ORANGE } }, totalPct+"%"),
+          React.createElement("div", { style:{ fontSize:11, color:"#aaa" } }, totalDone+"/"+allActs.length+" tasks complete")
+        )
       ),
-      /*#__PURE__*/React.createElement("div", { style:{ position:"relative" } },
-        /*#__PURE__*/React.createElement("div", { style:{ position:"absolute", top:21, left:"5%", right:"5%", height:3, background:"#e8eaed", borderRadius:2, zIndex:0 } }),
-        /*#__PURE__*/React.createElement("div", { style:{ position:"absolute", top:21, left:"5%", height:3, borderRadius:2, zIndex:1, background:"linear-gradient(to right, "+ORANGE+", "+NAVY+")", width:(Math.min(((activePhase-1)/(phases.length-1))*90,90))+"%"} }),
-        /*#__PURE__*/React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", position:"relative", zIndex:2 } },
-          phases.map((ph, i) => {
+      React.createElement("div", { style:{ height:6, background:"#e8eaed", borderRadius:4, marginBottom:20, overflow:"hidden" } },
+        React.createElement("div", { style:{ height:"100%", width:totalPct+"%", background: totalPct===100?"#22c55e":ORANGE, borderRadius:4, transition:"width 0.3s" } })
+      ),
+      React.createElement("div", { style:{ position:"relative" } },
+        React.createElement("div", { style:{ position:"absolute", top:21, left:"10%", right:"10%", height:3, background:"#e8eaed", borderRadius:2, zIndex:0 } }),
+        React.createElement("div", { style:{ position:"absolute", top:21, left:"10%", height:3, borderRadius:2, zIndex:1, background:"linear-gradient(to right,"+ORANGE+","+NAVY+")", width:(Math.min(((activePhase-1)/(phases.length-1))*80,80))+"%"} }),
+        React.createElement("div", { style:{ display:"flex", justifyContent:"space-around", position:"relative", zIndex:2 } },
+          phases.map((ph) => {
             const phNum = parseInt(ph.num);
             const isActive = phNum === activePhase;
             const isDone   = phNum < activePhase;
+            const phActs = phNum===1?p1activities:phNum===2?p2activities:p3activities;
+            const phDone = phActs.filter(a=>a.status==="Complete").length;
             const nodeColor = isActive ? ORANGE : isDone ? NAVY : "#d0d5dd";
-            return /*#__PURE__*/React.createElement("div", { key:ph.num, style:{ display:"flex", flexDirection:"column", alignItems:"center", width:(100/phases.length)+"%" } },
-              /*#__PURE__*/React.createElement("div", { style:{ width:42, height:42, borderRadius:"50%", background:isActive?ORANGE:isDone?NAVY:"#fff", border:"3px solid "+nodeColor, display:"flex", alignItems:"center", justifyContent:"center", color:(isActive||isDone)?"#fff":"#aaa", fontWeight:800, fontSize:16, boxShadow:isActive?("0 0 0 4px "+ORANGE+"33"):"none" } },
+            return React.createElement("div", { key:ph.num, style:{ display:"flex", flexDirection:"column", alignItems:"center", width:"33%" } },
+              React.createElement("div", { style:{ width:42, height:42, borderRadius:"50%", background:isActive?ORANGE:isDone?NAVY:"#fff", border:"3px solid "+nodeColor, display:"flex", alignItems:"center", justifyContent:"center", color:(isActive||isDone)?"#fff":"#aaa", fontWeight:800, fontSize:16, boxShadow:isActive?("0 0 0 4px "+ORANGE+"33"):"none" } },
                 isDone ? "✓" : ph.num
               ),
-              /*#__PURE__*/React.createElement("div", { style:{ marginTop:8, textAlign:"center" } },
-                /*#__PURE__*/React.createElement("div", { style:{ fontSize:12, fontWeight:isActive?700:600, color:isActive?ORANGE:isDone?NAVY:"#aaa", lineHeight:1.3 } }, ph.label),
-                /*#__PURE__*/React.createElement("div", { style:{ fontSize:10, color:"#aaa", marginTop:2 } }, ph.sub),
-                isActive && /*#__PURE__*/React.createElement("div", { style:{ marginTop:4, background:ORANGE, color:"#fff", fontSize:9, fontWeight:700, borderRadius:10, padding:"2px 7px", display:"inline-block", textTransform:"uppercase", letterSpacing:"0.04em" } }, "▶ Now")
+              React.createElement("div", { style:{ marginTop:8, textAlign:"center" } },
+                React.createElement("div", { style:{ fontSize:12, fontWeight:isActive?700:600, color:isActive?ORANGE:isDone?NAVY:"#aaa", lineHeight:1.3 } }, ph.label),
+                React.createElement("div", { style:{ fontSize:10, color:"#aaa", marginTop:2 } }, ph.sub),
+                React.createElement("div", { style:{ fontSize:10, color:"#888", marginTop:2 } }, phDone+"/"+phActs.length),
+                isActive && React.createElement("div", { style:{ marginTop:4, background:ORANGE, color:"#fff", fontSize:9, fontWeight:700, borderRadius:10, padding:"2px 7px", display:"inline-block", textTransform:"uppercase", letterSpacing:"0.04em" } }, "▶ Active")
               )
             );
           })
@@ -6143,119 +6171,128 @@ function CapturePhaseTab({ data, setData, roster }) {
     );
   }
 
-  return /*#__PURE__*/React.createElement("div", null,
-    /*#__PURE__*/React.createElement(PhaseBanner, null),
-    // ── Phase 2 ──
-    /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
-      /*#__PURE__*/React.createElement(PhaseHeader, { number: "2", title: "Customer & Mission Assessment", objective: "Understand the customer's mission and future needs.", timeline: "Ongoing — typically 12+ months out" }),
-      /*#__PURE__*/React.createElement(ActivityTable, { activities: p2activities, phase: "phase2", updActivity: updActivity, roster: roster }),
+  return React.createElement("div", null,
+    React.createElement(PhaseBanner, null),
 
-      // Stakeholder Map
-      /*#__PURE__*/React.createElement(SectionLabel, null, "Stakeholder Map / Key Decision Makers"),
-      /*#__PURE__*/React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginBottom: 8 } },
-        /*#__PURE__*/React.createElement("table", { style: { width: "100%", borderCollapse: "collapse" } },
-          /*#__PURE__*/React.createElement("thead", null,
-            /*#__PURE__*/React.createElement("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #e8eaed" } },
+    // ── Phase 1: Identification ──
+    React.createElement(Card, { style: { marginBottom: 24 } },
+      React.createElement(PhaseHeader, { number: "1", title: "Phase 1: Identification", objective: "Discover the opportunity and make an initial Go/No-Go decision.", timeline: "Early pipeline — 18+ months out" }),
+      React.createElement(ActivityTable, { activities: p1activities, phase: "phase1", updActivity: updActivity, roster: roster }),
+      React.createElement(SectionLabel, null, "Opportunity Source & Notes"),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        [
+          { field: "opportunitySource", label: "Opportunity Source", placeholder: "e.g. GovWin, SAM.gov, customer referral, industry day..." },
+          { field: "fitAssessment", label: "Capability Fit Assessment", placeholder: "How well does this align with D&G core capabilities and past performance?" }
+        ].map(({ field, label, placeholder }) =>
+          React.createElement("div", { key: field },
+            React.createElement(Lbl, null, label),
+            React.createElement("textarea", { value: p1[field] || "", onChange: e => upd("phase1", field, e.target.value), style: TAStyles, rows: 3, placeholder })
+          )
+        )
+      ),
+      React.createElement(SectionLabel, null, "Initial Go / No-Go Rationale"),
+      React.createElement("textarea", { value: p1.goNoGoNotes || "", onChange: e => upd("phase1", "goNoGoNotes", e.target.value), style: { ...TAStyles, minHeight: 72 }, placeholder: "Document rationale for advancing this opportunity to Qualification..." })
+    ),
+
+    // ── Phase 2: Qualification ──
+    React.createElement(Card, { style: { marginBottom: 24 } },
+      React.createElement(PhaseHeader, { number: "2", title: "Phase 2: Qualification", objective: "Validate the opportunity, understand the customer, and confirm pursuit decision.", timeline: "12+ months out" }),
+      React.createElement(ActivityTable, { activities: p2activities, phase: "phase2", updActivity: updActivity, roster: roster }),
+
+      React.createElement(SectionLabel, null, "Stakeholder Map / Key Decision Makers"),
+      React.createElement("div", { style: { border: "1px solid #e8eaed", borderRadius: 8, overflow: "hidden", marginBottom: 8 } },
+        React.createElement("table", { style: { width: "100%", borderCollapse: "collapse" } },
+          React.createElement("thead", null,
+            React.createElement("tr", { style: { background: "#f8f9fa", borderBottom: "1px solid #e8eaed" } },
               ["Name", "Title / Role", "Org / Office", "Influence", "Relationship", "Notes"].map(h =>
-                /*#__PURE__*/React.createElement("th", { key: h, style: { padding: "8px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.04em" } }, h)
+                React.createElement("th", { key: h, style: { padding: "8px 10px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.04em" } }, h)
               ),
-              /*#__PURE__*/React.createElement("th", { style: { width: 36 } })
+              React.createElement("th", { style: { width: 36 } })
             )
           ),
-          /*#__PURE__*/React.createElement("tbody", null,
+          React.createElement("tbody", null,
             (p2.stakeholderMap || []).map((row, i) =>
-              /*#__PURE__*/React.createElement("tr", { key: row.id, style: { background: i % 2 === 0 ? "#fff" : "#fafafa", borderTop: i > 0 ? "1px solid #f0f0f0" : "none" } },
-                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.name, onChange: e => updStakeholder(i, "name", e.target.value), placeholder: "Full Name", style: { ...inputSt, fontSize: 12 } })),
-                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.title, onChange: e => updStakeholder(i, "title", e.target.value), placeholder: "e.g. COR, PM", style: { ...inputSt, fontSize: 12 } })),
-                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.org, onChange: e => updStakeholder(i, "org", e.target.value), placeholder: "e.g. USTC J6", style: { ...inputSt, fontSize: 12 } })),
-                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px", minWidth: 100 } },
-                  /*#__PURE__*/React.createElement("select", { value: row.influence, onChange: e => updStakeholder(i, "influence", e.target.value), style: { ...inputSt, fontSize: 12 } },
-                    INFLUENCE_OPTS.map(o => /*#__PURE__*/React.createElement("option", { key: o, value: o }, o || "— Level —"))
+              React.createElement("tr", { key: row.id, style: { background: i % 2 === 0 ? "#fff" : "#fafafa", borderTop: i > 0 ? "1px solid #f0f0f0" : "none" } },
+                React.createElement("td", { style: { padding: "6px 8px" } }, React.createElement("input", { value: row.name, onChange: e => updStakeholder(i, "name", e.target.value), placeholder: "Full Name", style: { ...inputSt, fontSize: 12 } })),
+                React.createElement("td", { style: { padding: "6px 8px" } }, React.createElement("input", { value: row.title, onChange: e => updStakeholder(i, "title", e.target.value), placeholder: "e.g. COR, PM", style: { ...inputSt, fontSize: 12 } })),
+                React.createElement("td", { style: { padding: "6px 8px" } }, React.createElement("input", { value: row.org, onChange: e => updStakeholder(i, "org", e.target.value), placeholder: "e.g. USTC J6", style: { ...inputSt, fontSize: 12 } })),
+                React.createElement("td", { style: { padding: "6px 8px", minWidth: 100 } },
+                  React.createElement("select", { value: row.influence, onChange: e => updStakeholder(i, "influence", e.target.value), style: { ...inputSt, fontSize: 12 } },
+                    INFLUENCE_OPTS.map(o => React.createElement("option", { key: o, value: o }, o || "— Level —"))
                   )
                 ),
-                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px", minWidth: 110 } },
-                  /*#__PURE__*/React.createElement("select", { value: row.relationship, onChange: e => updStakeholder(i, "relationship", e.target.value), style: { ...inputSt, fontSize: 12 } },
-                    REL_OPTS.map(o => /*#__PURE__*/React.createElement("option", { key: o, value: o }, o || "— Strength —"))
+                React.createElement("td", { style: { padding: "6px 8px", minWidth: 110 } },
+                  React.createElement("select", { value: row.relationship, onChange: e => updStakeholder(i, "relationship", e.target.value), style: { ...inputSt, fontSize: 12 } },
+                    REL_OPTS.map(o => React.createElement("option", { key: o, value: o }, o || "— Strength —"))
                   )
                 ),
-                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px" } }, /*#__PURE__*/React.createElement("input", { value: row.notes, onChange: e => updStakeholder(i, "notes", e.target.value), placeholder: "Notes / context", style: { ...inputSt, fontSize: 12 } })),
-                /*#__PURE__*/React.createElement("td", { style: { padding: "6px 8px", textAlign: "center" } },
-                  /*#__PURE__*/React.createElement("button", { onClick: () => removeStakeholder(i), style: { background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: 14, padding: 2 }, title: "Remove row" }, "✕")
+                React.createElement("td", { style: { padding: "6px 8px" } }, React.createElement("input", { value: row.notes, onChange: e => updStakeholder(i, "notes", e.target.value), placeholder: "Notes / context", style: { ...inputSt, fontSize: 12 } })),
+                React.createElement("td", { style: { padding: "6px 8px", textAlign: "center" } },
+                  React.createElement("button", { onClick: () => removeStakeholder(i), style: { background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: 14, padding: 2 } }, "✕")
                 )
               )
             )
           )
         )
       ),
-      /*#__PURE__*/React.createElement("button", {
+      React.createElement("button", {
         onClick: addStakeholder,
         style: { fontSize: 12, fontWeight: 700, color: ORANGE, background: "transparent", border: `1px dashed ${ORANGE}`, borderRadius: 6, padding: "5px 12px", cursor: "pointer", marginBottom: 16 }
       }, "+ Add Stakeholder"),
 
-      // Customer Questions
-      /*#__PURE__*/React.createElement(SectionLabel, null, "Customer Discovery Questions"),
-      /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+      React.createElement(SectionLabel, null, "Customer Discovery Questions"),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
         [
           { field: "questionsWorking", label: "What's working?" },
           { field: "questionsNotWorking", label: "What's not working?" },
           { field: "questionsChange", label: "What would they change?" },
           { field: "questionsLosingSleep", label: "What's keeping leadership awake at night?" }
         ].map(({ field, label }) =>
-          /*#__PURE__*/React.createElement("div", { key: field },
-            /*#__PURE__*/React.createElement(Lbl, null, label),
-            /*#__PURE__*/React.createElement("textarea", { value: p2[field] || "", onChange: e => upd("phase2", field, e.target.value), style: TAStyles, rows: 3 })
+          React.createElement("div", { key: field },
+            React.createElement(Lbl, null, label),
+            React.createElement("textarea", { value: p2[field] || "", onChange: e => upd("phase2", field, e.target.value), style: TAStyles, rows: 3 })
           )
         )
       ),
-
-      // Customer Profile Notes
-      /*#__PURE__*/React.createElement(SectionLabel, null, "Customer Profile Notes"),
-      /*#__PURE__*/React.createElement("textarea", { value: p2.customerProfileNotes || "", onChange: e => upd("phase2", "customerProfileNotes", e.target.value), style: { ...TAStyles, minHeight: 80 }, placeholder: "Capture overall customer profile summary, priorities, and context..." })
+      React.createElement(SectionLabel, null, "Gate Review — Go / No-Go Rationale"),
+      React.createElement("textarea", { value: p2.gateReviewNotes || "", onChange: e => upd("phase2", "gateReviewNotes", e.target.value), style: { ...TAStyles, minHeight: 72 }, placeholder: "Document rationale for advancing to full Capture phase..." })
     ),
 
-    // ── Phase 3 ──
-    /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
-      /*#__PURE__*/React.createElement(PhaseHeader, { number: "3", title: "Competitive Intelligence / Black Hat", objective: "Understand competitors and likely strategies.", timeline: "9–12 months out, ongoing" }),
-      /*#__PURE__*/React.createElement(ActivityTable, { activities: p3activities, phase: "phase3", updActivity: updActivity, roster: roster }),
+    // ── Phase 3: Capture ──
+    React.createElement(Card, { style: { marginBottom: 24 } },
+      React.createElement(PhaseHeader, { number: "3", title: "Phase 3: Capture", objective: "Shape the opportunity, build the team, develop win strategy, and submit a winning proposal.", timeline: "6–12 months out through award" }),
+      React.createElement(ActivityTable, { activities: p3activities, phase: "phase3", updActivity: updActivity, roster: roster }),
 
-      // SWOT
-      /*#__PURE__*/React.createElement(SectionLabel, null, "D&G SWOT Analysis"),
-      /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+      React.createElement(SectionLabel, null, "Win Strategy"),
+      React.createElement("textarea", { value: p3.winStrategy || "", onChange: e => upd("phase3", "winStrategy", e.target.value), style: { ...TAStyles, minHeight: 80 }, placeholder: "Document the overarching win strategy, key themes, and discriminators..." }),
+
+      React.createElement(SectionLabel, null, "D&G SWOT Analysis"),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
         [
-          { field: "swotStrengths", label: "💪 Strengths", color: "#e8f5e9", border: "#a5d6a7" },
-          { field: "swotWeaknesses", label: "⚠️ Weaknesses", color: "#fff3e0", border: "#ffcc80" },
-          { field: "swotOpportunities", label: "🎯 Opportunities", color: "#e3f2fd", border: "#90caf9" },
-          { field: "swotThreats", label: "🚨 Threats", color: "#fce4ec", border: "#f48fb1" }
+          { field: "swotStrengths",     label: "Strengths",     color: "#e8f5e9", border: "#a5d6a7" },
+          { field: "swotWeaknesses",    label: "Weaknesses",    color: "#fff3e0", border: "#ffcc80" },
+          { field: "swotOpportunities", label: "Opportunities", color: "#e3f2fd", border: "#90caf9" },
+          { field: "swotThreats",       label: "Threats",       color: "#fce4ec", border: "#f48fb1" }
         ].map(({ field, label, color, border }) =>
-          /*#__PURE__*/React.createElement("div", { key: field, style: { background: color, border: `1px solid ${border}`, borderRadius: 8, padding: 12 } },
-            /*#__PURE__*/React.createElement(Lbl, null, label),
-            /*#__PURE__*/React.createElement("textarea", { value: p3[field] || "", onChange: e => upd("phase3", field, e.target.value), style: { ...TAStyles, background: "rgba(255,255,255,0.7)", minHeight: 80 }, placeholder: `Enter ${label.replace(/[^\w\s]/gi, "").trim().toLowerCase()}...` })
+          React.createElement("div", { key: field, style: { background: color, border: `1px solid ${border}`, borderRadius: 8, padding: 12 } },
+            React.createElement(Lbl, null, label),
+            React.createElement("textarea", { value: p3[field] || "", onChange: e => upd("phase3", field, e.target.value), style: { ...TAStyles, background: "rgba(255,255,255,0.7)", minHeight: 80 }, placeholder: label.toLowerCase()+"..." })
           )
         )
       ),
 
-      // Competitor Matrix & Black Hat Notes
-      /*#__PURE__*/React.createElement(SectionLabel, null, "Competitor Matrix Notes"),
-      /*#__PURE__*/React.createElement("textarea", { value: p3.competitorMatrixNotes || "", onChange: e => upd("phase3", "competitorMatrixNotes", e.target.value), style: { ...TAStyles, minHeight: 80 }, placeholder: "Document likely bidders, their strengths/weaknesses, past performance, and pricing strategies..." }),
-      /*#__PURE__*/React.createElement(SectionLabel, null, "Black Hat Session Notes"),
-      /*#__PURE__*/React.createElement("textarea", { value: p3.blackHatNotes || "", onChange: e => upd("phase3", "blackHatNotes", e.target.value), style: { ...TAStyles, minHeight: 80 }, placeholder: "Record outcomes from Black Hat session — how competitors would evaluate and attack our proposal..." })
-    ),
+      React.createElement(SectionLabel, null, "Black Hat / Competitor Analysis"),
+      React.createElement("textarea", { value: p3.blackHatNotes || "", onChange: e => upd("phase3", "blackHatNotes", e.target.value), style: { ...TAStyles, minHeight: 72 }, placeholder: "Document competitor analysis — likely bidders, strengths/weaknesses, pricing strategies, Black Hat outcomes..." }),
 
-    // ── Phase 4 ──
-    /*#__PURE__*/React.createElement(Card, { style: { marginBottom: 24 } },
-      /*#__PURE__*/React.createElement(PhaseHeader, { number: "4", title: "Staffing & Teaming Strategy", objective: "Build a realistic staffing and partner approach.", timeline: "9–12 months out, ongoing" }),
-      /*#__PURE__*/React.createElement(ActivityTable, { activities: p4activities, phase: "phase4", updActivity: updActivity, roster: roster }),
-
-      // Deliverable notes
-      /*#__PURE__*/React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 4 } },
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 4 } },
         [
-          { field: "staffingPlanNotes", label: "Staffing Plan Notes", placeholder: "Key personnel requirements, labor categories, salary assumptions..." },
-          { field: "teamingStrategyNotes", label: "Teaming Strategy Notes", placeholder: "Teammate/JV evaluation, NDA/TA status, workshare considerations..." },
-          { field: "candidatePipelineNotes", label: "Candidate Pipeline Notes", placeholder: "Active recruits, incumbent retention targets, LOI status..." }
+          { field: "staffingNotes",  label: "Staffing & Key Personnel Notes", placeholder: "Key personnel, labor categories, incumbent retention targets, LOI status..." },
+          { field: "teamingNotes",   label: "Teaming Strategy Notes",         placeholder: "Partner evaluation, NDA/TA status, workshare considerations..." },
+          { field: "solutionNotes",  label: "Solution / Technical Approach",  placeholder: "High-level technical approach, innovations, key differentiators..." }
         ].map(({ field, label, placeholder }) =>
-          /*#__PURE__*/React.createElement("div", { key: field },
-            /*#__PURE__*/React.createElement(SectionLabel, null, label),
-            /*#__PURE__*/React.createElement("textarea", { value: p4[field] || "", onChange: e => upd("phase4", field, e.target.value), style: { ...TAStyles, minHeight: 100 }, placeholder })
+          React.createElement("div", { key: field },
+            React.createElement(SectionLabel, null, label),
+            React.createElement("textarea", { value: p3[field] || "", onChange: e => upd("phase3", field, e.target.value), style: { ...TAStyles, minHeight: 90 }, placeholder })
           )
         )
       )
